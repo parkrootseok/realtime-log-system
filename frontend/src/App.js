@@ -1,27 +1,25 @@
 import React from 'react';
-import { ThemeProvider } from 'styled-components';
-import GlobalStyle from './styles/GlobalStyle';
-import theme from './styles/theme';
-import styled from 'styled-components';
+import LogViewer from './components/LogViewer';
+import { createGlobalStyle } from 'styled-components';
 
-const Container = styled.div`
-  padding: 20px;
-  text-align: center;
-`;
-
-const Title = styled.h1`
-  color: ${(props) => props.theme.colors.primary};
+const GlobalStyle = createGlobalStyle`
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 `;
 
 function App() {
   return (
-    <ThemeProvider theme={theme}>
+    <>
       <GlobalStyle />
-      <Container>
-        <Title>로그 분석 시스템</Title>
-        <p>초기 설정이 완료되었습니다!</p>
-      </Container>
-    </ThemeProvider>
+      <LogViewer />
+    </>
   );
 }
 
