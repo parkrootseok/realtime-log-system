@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import LogStats from './LogStats';
 import { logService } from '../services/api';
+import RealtimeMonitoring from './RealtimeMonitoring';
+import UploadMonitoring from './UploadMonitoring';
 
 const LogContainer = styled.div`
   padding: 32px 48px;
-  max-width: 1600px;
+  max-width: 100%;
   margin: 0 auto;
   background: #ffffff;
   // box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);  // 그림자 제거
@@ -95,28 +96,25 @@ const StatusIndicator = styled.div`
 `;
 
 const LogLevel = styled.span`
-  padding: 4px 12px;
+  padding: 4px 8px;
   border-radius: 4px;
-  font-size: 13px;
-  font-weight: 600;
-  background-color: #f8fafc;
-  color: ${(props) => {
+  font-size: 12px;
+  font-weight: 500;
+  min-width: 55px;
+  text-align: center;
+
+  ${(props) => {
     switch (props.level) {
       case 'ERROR':
-        return '#ef4444';
+        return 'background: #fee2e2; color: #dc2626;';
       case 'WARN':
-        return '#f59e0b';
+        return 'background: #fef3c7; color: #d97706;';
       case 'INFO':
-        return '#3b82f6';
+        return 'background: #dbeafe; color: #2563eb;';
       default:
-        return '#64748b';
+        return 'background: #f3f4f6; color: #4b5563;';
     }
-  }};
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 55px;
-  text-align: center;
+  }}
 `;
 
 const TabContainer = styled.div`
@@ -127,38 +125,30 @@ const TabContainer = styled.div`
 `;
 
 const TabButtonContainer = styled.div`
-  width: 100%;
-  padding: 12px;
-  background: #ffffff;
-  border: 1px solid #eef2f6;
-  border-radius: 8px;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  height: fit-content;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); // 그림자 추가
+  width: 100%;
+  box-sizing: border-box;
 `;
 
 const TabButton = styled.button`
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid ${(props) => (props.$active ? '#2563eb' : '#e2e8f0')};
-  background-color: ${(props) => (props.$active ? '#eff6ff' : '#ffffff')};
-  color: ${(props) => (props.$active ? '#2563eb' : '#64748b')};
-  border-radius: 6px;
+  border: none;
+  background: transparent;
   cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  text-align: left;
-  transition: all 0.2s ease;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
+  border-radius: 8px;
+  margin-bottom: 8px;
 
   &:hover {
-    background-color: ${(props) => (props.$active ? '#dbeafe' : '#f8fafc')};
-    border-color: ${(props) => (props.$active ? '#2563eb' : '#cbd5e1')};
+    background: #f1f5f9;
   }
+
+  background: ${(props) => (props.$active ? '#e2e8f0' : 'transparent')};
 `;
 
 const TabText = styled.span`
@@ -205,18 +195,23 @@ const ConnectionDot = styled.span`
 `;
 
 const ContentContainer = styled.div`
-  position: relative;
   display: flex;
-  gap: 30px;
-  max-width: 1000px;  // 900px에서 1000px로 증가
-  margin: 0 auto;
+  gap: 24px;
 `;
 
 const LeftSection = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  width: 160px;
+  gap: 16px;
+  width: 240px; // 280px에서 240px로 줄임
+`;
+
+const StatsCard = styled.div`
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 16px;
+  width: 100%;
+  box-sizing: border-box;
 `;
 
 const RightSection = styled.div`
@@ -239,48 +234,36 @@ const FilterBox = styled.div`
 
 const LogContent = styled.div`
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  height: calc(100vh - 200px);
   min-width: 0;
-  width: calc(100% - 160px - 0px - 0px); // 전체 너비 - 왼쪽 탭만 고려 (오른쪽 탭 제거)
-  margin-left: 16px;
+  width: 100%;
 `;
 
 const FilterContainer = styled.div`
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid #eef2f6;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  margin-top: 16px;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+  width: 100%;
 `;
 
 const FilterTitle = styled.div`
-  font-size: 14px;
-  font-weight: 600;
-  color: #475569;
-  margin-bottom: 4px;
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 8px;
 `;
 
-const FilterTag = styled.button`
+const FilterTag = styled.div`
   width: 100%;
   padding: 8px 12px;
-  border: 1px solid ${(props) => (props.$selected ? '#2563eb' : '#e2e8f0')};
-  background-color: ${(props) => (props.$selected ? '#eff6ff' : '#ffffff')};
-  color: ${(props) => (props.$selected ? '#2563eb' : '#64748b')};
-  border-radius: 6px;
-  cursor: pointer;
+  margin: 4px 0;
   font-size: 13px;
-  font-weight: 500;
-  text-align: left;
-  transition: all 0.2s ease;
-  opacity: ${(props) => (props.loading ? 0.5 : 1)};
-  cursor: ${(props) => (props.loading ? 'not-allowed' : 'pointer')};
+  cursor: pointer;
+  border-radius: 6px;
+  background: ${(props) => (props.$selected ? '#e2e8f0' : 'transparent')};
+  color: ${(props) => (props.$selected ? '#1e293b' : '#64748b')};
 
   &:hover {
-    background-color: ${(props) => (props.$selected ? '#dbeafe' : '#f8fafc')};
-    border-color: ${(props) => (props.$selected ? '#2563eb' : '#cbd5e1')};
+    background: #e2e8f0;
   }
 `;
 
@@ -301,14 +284,11 @@ const ErrorMessage = styled.div`
 `;
 
 const TableContainer = styled.div`
-  flex: 1;
-  overflow: hidden; // overflow-y에서 변경
-  border: 1px solid #eef2f6;
+  width: 100%;
+  min-width: 1200px;
+  border: 1px solid #e2e8f0; // 테이블 외곽선 추가
   border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  position: relative;
-  display: flex;
-  flex-direction: column;
+  overflow: hidden; // 둥근 모서리 유지를 위해
 `;
 
 const TableHeader = styled.div`
@@ -319,18 +299,13 @@ const TableHeader = styled.div`
 
 const TableHeaderRow = styled.div`
   display: grid;
-  grid-template-columns: 180px 90px 180px 300px;  // 메시지 컬럼 250px → 300px
+  grid-template-columns: 180px 80px 200px 1fr;
   padding: 12px 16px;
   font-weight: 600;
   color: #475569;
   font-size: 14px;
-  border-bottom: 1px solid #eef2f6;
-
-  > div {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+  border-bottom: 1px solid #e2e8f0;
+  background-color: #f8fafc;
 `;
 
 const TableBody = styled.div`
@@ -356,48 +331,53 @@ const TableBody = styled.div`
   }
 `;
 
-const TableRow = styled.div`
-  display: grid;
-  grid-template-columns: 180px 90px 180px 300px;  // 메시지 컬럼 250px → 300px
-  padding: 12px 16px;
-  border-bottom: 1px solid #eef2f6;
-  transition: all 0.2s ease;
-  animation: ${(props) => (props.$isNew ? 'highlight 2s ease-out' : 'none')};
-  font-size: 14px;
-
-  > div {
-    display: flex;
-    align-items: center;
-
-    &:not(:last-child) {
-      justify-content: center;
-    }
-
-    &:last-child {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      cursor: pointer;
-
-      &:hover {
-        color: #2563eb;
-      }
-    }
-  }
+const TableRow = styled(TableHeaderRow)`
+  font-weight: normal;
+  background-color: transparent;
 
   &:hover {
     background-color: #f8fafc;
   }
+`;
 
-  &:last-child {
-    border-bottom: none;
-  }
+const TableCell = styled.div`
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const EmptyState = styled.div`
   padding: 12px;
   text-align: center;
   color: #64748b;
+  font-size: 14px;
+`;
+
+const FileUploadArea = styled.div`
+  border: 2px dashed
+    ${(props) => (props.$success ? '#22c55e' : props.$error ? '#dc2626' : '#e2e8f0')};
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
+  background-color: ${(props) =>
+    props.$success ? '#f0fdf4' : props.$error ? '#fef2f2' : 'transparent'};
+
+  &:hover {
+    border-color: ${(props) => (props.$success ? '#16a34a' : props.$error ? '#b91c1c' : '#94a3b8')};
+    background-color: ${(props) =>
+      props.$success ? '#dcfce7' : props.$error ? '#fee2e2' : '#f8fafc'};
+  }
+`;
+
+const UploadText = styled.p`
+  color: ${(props) => (props.$success ? '#16a34a' : props.$error ? '#b91c1c' : '#64748b')};
+  margin: 0;
   font-size: 14px;
 `;
 
@@ -408,11 +388,15 @@ const LogViewer = () => {
   const [error, setError] = useState(null);
   const [filterError, setFilterError] = useState(null);
   const [connected, setConnected] = useState(false);
-  const [activeTab, setActiveTab] = useState('realtime');
+  const [activeTab, setActiveTab] = useState('realtime'); // 'realtime', 'upload'
+  const [realtimeSubTab, setRealtimeSubTab] = useState('logs'); // 'logs', 'analysis'
   const [selectedLevels, setSelectedLevels] = useState(['ERROR', 'WARN', 'INFO']);
   const [filterLoading, setFilterLoading] = useState(false);
   const [newLogId, setNewLogId] = useState(null);
   const [expandedMessage, setExpandedMessage] = useState(null);
+  const [uploadedFile, setUploadedFile] = useState(null);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [uploadError, setUploadError] = useState(false);
 
   useEffect(() => {
     const eventSource = new EventSource(`${process.env.REACT_APP_API_URL}/logs/stream`);
@@ -474,6 +458,52 @@ const LogViewer = () => {
     };
   }, []);
 
+  // 선택된 로그 레벨로 API 호출하는 함수
+  const fetchFilteredLogs = async () => {
+    if (realtimeSubTab === 'analysis') {
+      setFilterLoading(true);
+      setFilterError(null);
+      try {
+        const response = await logService.getErrorLogs(selectedLevels);
+
+        // 로그 문자열을 객체로 파싱하는 함수
+        const parseLogString = (logStr) => {
+          const match = logStr.match(/^(\S+\s+\S+)\s+(\w+)\s+\[(.*?)\]\s*-\s*(.*)$/);
+          if (match) {
+            return {
+              timestamp: match[1],
+              level: match[2],
+              service: match[3],
+              message: match[4].trim(),
+            };
+          }
+          return null;
+        };
+
+        // 로그 문자열 배열을 객체 배열로 변환
+        const parsedLogs = response.data.data.logs
+          .map(parseLogString)
+          .filter((log) => log !== null);
+
+        setFilteredLogs(parsedLogs);
+      } catch (err) {
+        console.error('API 에러:', err);
+        setFilterError('로그 조회 중 오류가 발생했습니다.');
+        setFilteredLogs([]);
+      } finally {
+        setFilterLoading(false);
+      }
+    }
+  };
+
+  // 로그 레벨 선택이 변경될 때마다 API 호출
+  useEffect(() => {
+    if (realtimeSubTab === 'analysis' && selectedLevels.length > 0) {
+      console.log('API 호출 시작 - 선택된 레벨:', selectedLevels);
+      fetchFilteredLogs();
+    }
+  }, [selectedLevels, realtimeSubTab]);
+
   // 태그 토글 핸들러
   const handleTagToggle = (level) => {
     if (filterLoading) return;
@@ -508,14 +538,14 @@ const LogViewer = () => {
         {Array.isArray(logData) && logData.length > 0 ? (
           logData.map((log, index) => (
             <TableRow key={index} $isNew={log.timestamp === newLogId}>
-              <div>{log.timestamp}</div>
-              <div>
+              <TableCell>{log.timestamp}</TableCell>
+              <TableCell>
                 <LogLevel level={log.level}>{log.level}</LogLevel>
-              </div>
-              <div>{log.service}</div>
-              <div onClick={() => handleMessageClick(log.message)} title={log.message}>
+              </TableCell>
+              <TableCell>{log.service}</TableCell>
+              <TableCell onClick={() => handleMessageClick(log.message)} title={log.message}>
                 {log.message}
-              </div>
+              </TableCell>
             </TableRow>
           ))
         ) : (
@@ -525,56 +555,61 @@ const LogViewer = () => {
     </TableContainer>
   );
 
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setUploadedFile(file);
+    }
+  };
+
+  const handleUploadStatusChange = ({ success, error }) => {
+    setUploadSuccess(success);
+    setUploadError(error);
+  };
+
   return (
     <LogContainer>
       <ContentContainer>
         <LeftSection>
-          <LogStats />
           <TabButtonContainer>
             <TabButton $active={activeTab === 'realtime'} onClick={() => setActiveTab('realtime')}>
-              <TabText $active={activeTab === 'realtime'}>실시간 모니터링</TabText>
+              <TabText $active={activeTab === 'realtime'}>실시간 로그 분석</TabText>
               <ConnectionDot $connected={connected} title={connected ? '연결됨' : '연결 끊김'} />
             </TabButton>
-            <TabButton $active={activeTab === 'filtered'} onClick={() => setActiveTab('filtered')}>
-              <TabText $active={activeTab === 'filtered'}>로그 분석</TabText>
+            <TabButton $active={activeTab === 'upload'} onClick={() => setActiveTab('upload')}>
+              <TabText $active={activeTab === 'upload'}>업로드 로그 분석</TabText>
             </TabButton>
-
-            {activeTab === 'filtered' && (
-              <FilterContainer>
-                <FilterTitle>로그 레벨</FilterTitle>
-                <FilterTag
-                  $selected={selectedLevels.includes('ERROR')}
-                  onClick={() => handleTagToggle('ERROR')}
-                  disabled={filterLoading}
-                  loading={filterLoading}
-                >
-                  🚨 ERROR
-                </FilterTag>
-                <FilterTag
-                  $selected={selectedLevels.includes('WARN')}
-                  onClick={() => handleTagToggle('WARN')}
-                  disabled={filterLoading}
-                  loading={filterLoading}
-                >
-                  ⚠️ WARN
-                </FilterTag>
-                <FilterTag
-                  $selected={selectedLevels.includes('INFO')}
-                  onClick={() => handleTagToggle('INFO')}
-                  disabled={filterLoading}
-                  loading={filterLoading}
-                >
-                  ℹ️ INFO
-                </FilterTag>
-              </FilterContainer>
-            )}
           </TabButtonContainer>
+
+          {activeTab === 'upload' && (
+            <label htmlFor="log-file-upload">
+              <FileUploadArea $success={uploadSuccess} $error={uploadError}>
+                <UploadText $success={uploadSuccess} $error={uploadError}>
+                  {uploadedFile
+                    ? `선택된 파일: ${uploadedFile.name}`
+                    : '로그 파일을 드래그하거나\n클릭하여 업로드하세요'}
+                </UploadText>
+              </FileUploadArea>
+              <input
+                id="log-file-upload"
+                type="file"
+                accept=".log,.txt"
+                onChange={handleFileUpload}
+                style={{ display: 'none' }}
+              />
+            </label>
+          )}
         </LeftSection>
 
         <LogContent>
-          {activeTab === 'filtered' && filterError && <ErrorMessage>{filterError}</ErrorMessage>}
-          {activeTab === 'realtime' && error && <ErrorMessage>{error}</ErrorMessage>}
-          {renderLogTable(activeTab === 'realtime' ? logs : filteredLogs)}
+          {error && <ErrorMessage>{error}</ErrorMessage>}
+          {activeTab === 'realtime' && <RealtimeMonitoring logs={logs} />}
+          {activeTab === 'upload' && (
+            <UploadMonitoring
+              uploadedFile={uploadedFile}
+              onUploadStatusChange={handleUploadStatusChange}
+            />
+          )}
         </LogContent>
       </ContentContainer>
     </LogContainer>

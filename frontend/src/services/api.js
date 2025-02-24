@@ -11,12 +11,17 @@ const api = axios.create({
 export const logService = {
   getLogs: () => api.get('/logs'),
 
-  getErrorLogs: (levels = ['ERROR', 'WARN', 'INFO']) =>
-    api.get('/logs/errors', { params: { levels: levels.join(',') } }),
+  getErrorLogs: (fileName, levels = ['ERROR', 'WARN', 'INFO']) =>
+    api.get('/logs/errors', {
+      params: {
+        fileName,
+        levels: levels.join(','),
+      },
+    }),
 
   uploadLogs: (file) => {
     const formData = new FormData();
-    formData.append('logFile', file);
+    formData.append('file', file);
     return api.post('/logs/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -24,7 +29,10 @@ export const logService = {
     });
   },
 
-  analyzeLogs: () => api.get('/logs/analyze'),
+  analyzeLogs: (fileName) =>
+    api.get('/logs/analyze', {
+      params: { fileName },
+    }),
 };
 
 export default api;
