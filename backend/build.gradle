@@ -22,19 +22,13 @@ dependencies {
 	/**
 	 * Spring 의존성
 	 * - Devtools
-	 * - Web
+	 * - WebSocket
+	 * - WebFlux
 	 */
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
-
-	/**
-	 * DB 의존성
-	 * - Spring JPA
-	 * - Mariadb
-	 */
-	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-	implementation 'com.mysql:mysql-connector-j:8.3.0'
-
+	implementation 'org.springframework.boot:spring-boot-starter-websocket'
+	implementation("org.springframework.boot:spring-boot-starter-webflux")
 
 	/**
 	 * Util 의존성
