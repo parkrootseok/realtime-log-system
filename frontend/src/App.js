@@ -1,6 +1,7 @@
 import React from 'react';
 import LogViewer from './components/LogViewer';
 import { createGlobalStyle } from 'styled-components';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
 
 const GlobalStyle = createGlobalStyle`
   body {
@@ -14,12 +15,16 @@ const GlobalStyle = createGlobalStyle`
   }
 `;
 
+const theme = createTheme({
+  spacing: (factor) => `${8 * factor}px`,
+});
+
 function App() {
   return (
-    <>
+    <ThemeProvider theme={theme}>
       <GlobalStyle />
       <LogViewer />
-    </>
+    </ThemeProvider>
   );
 }
 

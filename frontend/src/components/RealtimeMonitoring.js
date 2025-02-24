@@ -13,6 +13,7 @@ import {
 } from './common/Table';
 import { LogLevel, FilterTag } from './common/LogLevel';
 import RealtimeLogStatus from './RealtimeLogStatus';
+import LogLevelFilter from './common/LogLevelFilter';
 
 const MonitoringContainer = styled.div`
   background: #ffffff;
@@ -23,8 +24,8 @@ const MonitoringContainer = styled.div`
 
 const FilterWrapper = styled.div`
   display: flex;
+  align-items: center;
   justify-content: flex-end;
-  height: 40px;
   margin-bottom: 24px;
 `;
 
@@ -45,20 +46,20 @@ const ErrorBox = styled.div`
   margin-bottom: 16px;
 `;
 
-const LogTable = ({ logs }) => (
-  <TableContainer>
-    <TableHeader>
-      <TableHeaderRow>
-        <div>타임스탬프</div>
-        <div>레벨</div>
-        <div>서비스</div>
-        <div>메시지</div>
-      </TableHeaderRow>
-    </TableHeader>
-    {logs.length > 0 && (
+const LogTable = React.memo(
+  ({ logs }) => (
+    <TableContainer>
+      <TableHeader>
+        <TableHeaderRow>
+          <div>타임스탬프</div>
+          <div>레벨</div>
+          <div>서비스</div>
+          <div>메시지</div>
+        </TableHeaderRow>
+      </TableHeader>
       <TableBody>
-        {logs.map((log, index) => (
-          <TableRow key={index}>
+        {logs.map((log) => (
+          <TableRow key={`${log.timestamp}-${log.message}-${log.level}`}>
             <TableCell>{log.timestamp}</TableCell>
             <TableCell>
               <LogLevel level={log.level}>{log.level}</LogLevel>
@@ -68,30 +69,19 @@ const LogTable = ({ logs }) => (
           </TableRow>
         ))}
       </TableBody>
-    )}
-  </TableContainer>
+    </TableContainer>
+  ),
+  (prevProps, nextProps) => {
+    // 로그 배열의 길이가 같고 마지막 로그가 같으면 리렌더링하지 않음
+    return (
+      prevProps.logs.length === nextProps.logs.length &&
+      prevProps.logs[prevProps.logs.length - 1]?.timestamp ===
+        nextProps.logs[nextProps.logs.length - 1]?.timestamp
+    );
+  }
 );
 
-const LogFilter = ({ selectedLevels, onToggle, isLoading }) => (
-  <FilterContainer>
-    {['ERROR', 'WARN', 'INFO'].map((level) => (
-      <FilterTag
-        key={level}
-        $selected={selectedLevels.includes(level)}
-        onClick={() => !isLoading && onToggle(level)}
-      >
-        <span
-          style={{
-            color: level === 'ERROR' ? '#dc2626' : level === 'WARN' ? '#f59e0b' : '#3b82f6',
-          }}
-        >
-          ●
-        </span>
-        {level}
-      </FilterTag>
-    ))}
-  </FilterContainer>
-);
+LogTable.displayName = 'LogTable';
 
 const RealtimeMonitoring = ({ logs }) => {
   const [activeTab, setActiveTab] = useState(0);
@@ -121,14 +111,14 @@ const RealtimeMonitoring = ({ logs }) => {
 
   const handleTagToggle = (level) => {
     if (filterLoading) return;
-    setSelectedLevels((prev) => {
-      const newLevels = prev.includes(level)
-        ? prev.length > 1
-          ? prev.filter((l) => l !== level)
-          : prev
-        : [...prev, level];
 
-      setTimeout(() => fetchFilteredLogs(), 0);
+    setSelectedLevels((prev) => {
+      const newLevels =
+        prev.includes(level) && prev.length === 1
+          ? prev
+          : prev.includes(level)
+            ? prev.filter((l) => l !== level)
+            : [...prev, level];
       return newLevels;
     });
   };
@@ -163,7 +153,7 @@ const RealtimeMonitoring = ({ logs }) => {
             <>
               {filterError && <ErrorBox>{filterError}</ErrorBox>}
               <FilterWrapper>
-                <LogFilter
+                <LogLevelFilter
                   selectedLevels={selectedLevels}
                   onToggle={handleTagToggle}
                   isLoading={filterLoading}

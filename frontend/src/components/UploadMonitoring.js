@@ -13,6 +13,7 @@ import {
 import { LogLevel, FilterTag } from './common/LogLevel';
 import UploadLogStatus from './UploadLogStatus';
 import { parseLogString } from '../utils/logParser';
+import LogLevelFilter from './common/LogLevelFilter';
 
 const MonitoringContainer = styled.div`
   background: #ffffff;
@@ -25,20 +26,11 @@ const StatsAndFilterWrapper = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
   gap: 16px;
 `;
 
-const FilterWrapper = styled.div`
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-`;
-
-const FilterContainer = styled.div`
-  display: flex;
-  gap: 8px;
-`;
+const FilterWrapper = styled.div``;
 
 const ErrorBox = styled(Box)`
   margin-bottom: 16px;
@@ -75,77 +67,73 @@ const LogTable = ({ logs }) => (
   </TableContainer>
 );
 
-const LogFilter = ({ selectedLevels, onToggle, isLoading }) => (
-  <FilterContainer>
-    {['ERROR', 'WARN', 'INFO'].map((level) => (
-      <FilterTag
-        key={level}
-        $selected={selectedLevels.includes(level)}
-        onClick={() => !isLoading && onToggle(level)}
-      >
-        <span
-          style={{
-            color: level === 'ERROR' ? '#dc2626' : level === 'WARN' ? '#f59e0b' : '#3b82f6',
-          }}
-        >
-          ●
-        </span>
-        {level}
-      </FilterTag>
-    ))}
-  </FilterContainer>
-);
+// 컴포넌트 외부에 상태 저장소 선언
+export const fileStateStore = {
+  processedFile: null,
+  logs: [],
+  stats: { totalCount: 0, errorCount: 0 },
+  fileName: null,
+  selectedLevels: ['ERROR', 'WARN', 'INFO'],
+};
 
 const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
-  const [selectedLevels, setSelectedLevels] = useState(['ERROR', 'WARN', 'INFO']);
-  const [filteredLogs, setFilteredLogs] = useState([]);
+  const [selectedLevels, setSelectedLevels] = useState(fileStateStore.selectedLevels);
+  const [filteredLogs, setFilteredLogs] = useState(fileStateStore.logs);
   const [filterLoading, setFilterLoading] = useState(false);
   const [filterError, setFilterError] = useState(null);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [uploadError, setUploadError] = useState(null);
-  const [logStats, setLogStats] = useState({ totalCount: 0, errorCount: 0 });
-  const [uploadedFileName, setUploadedFileName] = useState(null);
+  const [logStats, setLogStats] = useState(fileStateStore.stats);
   const [isUploading, setIsUploading] = useState(false);
+
+  // 이전 uploadedFile을 추적하기 위한 ref 추가
   const previousFileRef = useRef(null);
 
-  const fetchFilteredLogs = async () => {
-    if (!uploadedFileName) return;
-
-    setFilterLoading(true);
-    setFilterError(null);
-
-    try {
-      const response = await logService.getErrorLogs(uploadedFileName, selectedLevels);
-      const parsedLogs = response.data.data.logs.map(parseLogString);
-      setFilteredLogs(parsedLogs);
-    } catch (err) {
-      console.error('로그 조회 실패:', err);
-      setFilterError('로그 조회 중 오류가 발생했습니다.');
-      setFilteredLogs([]);
-    } finally {
-      setFilterLoading(false);
-    }
-  };
-
-  const handleTagToggle = (level) => {
-    if (filterLoading) return;
-    setSelectedLevels((prev) => {
-      const newLevels = prev.includes(level)
-        ? prev.length > 1
-          ? prev.filter((l) => l !== level)
-          : prev
-        : [...prev, level];
-
-      setTimeout(() => fetchFilteredLogs(), 0);
-      return newLevels;
-    });
-  };
-
+  // 컴포넌트 마운트 시 저장된 상태 복원
   useEffect(() => {
-    const uploadFile = async () => {
-      if (!uploadedFile || isUploading || uploadedFile === previousFileRef.current) return;
+    // uploadedFile이 null이면 모든 상태 초기화
+    if (!uploadedFile) {
+      setFilteredLogs([]);
+      setLogStats({ totalCount: 0, errorCount: 0 });
+      setSelectedLevels(['ERROR', 'WARN', 'INFO']);
+      setUploadSuccess(false);
+      setUploadError(null);
+      setFilterError(null);
+      return;
+    }
 
-      previousFileRef.current = uploadedFile;
+    // 이미 처리된 파일이고 fileName이 있는 경우 재요청하지 않음
+    if (fileStateStore.processedFile === uploadedFile && fileStateStore.fileName) {
+      setFilteredLogs(fileStateStore.logs);
+      setLogStats(fileStateStore.stats);
+      setSelectedLevels(fileStateStore.selectedLevels);
+      setUploadSuccess(true);
+      onUploadStatusChange?.({ success: true, error: false });
+      return;
+    }
+
+    const uploadFile = async () => {
+      if (isUploading) {
+        return;
+      }
+
+      // 새로운 파일이거나 fileName이 없는 경우에만 상태 초기화
+      if (uploadedFile !== fileStateStore.processedFile || !fileStateStore.fileName) {
+        setFilteredLogs([]);
+        setLogStats({ totalCount: 0, errorCount: 0 });
+        setSelectedLevels(['ERROR', 'WARN', 'INFO']);
+        setUploadSuccess(false);
+        setUploadError(null);
+        setFilterError(null);
+
+        fileStateStore.processedFile = null;
+        fileStateStore.logs = [];
+        fileStateStore.stats = { totalCount: 0, errorCount: 0 };
+        fileStateStore.fileName = null;
+        fileStateStore.selectedLevels = ['ERROR', 'WARN', 'INFO'];
+      }
+
+      fileStateStore.processedFile = uploadedFile;
       setIsUploading(true);
 
       try {
@@ -154,23 +142,22 @@ const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
         console.log('uploadResponse:', uploadResponse);
 
         const newFileName = uploadResponse.data.data;
-        setUploadedFileName(newFileName);
-
-        console.log('파일 분석 시작:', newFileName);
+        fileStateStore.fileName = newFileName;
 
         try {
           const analysisResponse = await logService.analyzeLogs(newFileName);
           console.log('analysisResponse:', analysisResponse);
 
-          // 응답 구조 변경
           if (!analysisResponse || typeof analysisResponse.totalLines === 'undefined') {
             throw new Error('로그 분석 응답이 올바르지 않습니다.');
           }
 
-          setLogStats({
+          const newStats = {
             totalCount: analysisResponse.totalLines,
             errorCount: analysisResponse.errorCount,
-          });
+          };
+          fileStateStore.stats = newStats;
+          setLogStats(newStats);
         } catch (analysisError) {
           console.error('분석 요청 실패:', analysisError);
           throw new Error('로그 분석 중 오류가 발생했습니다.');
@@ -185,6 +172,7 @@ const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
           }
 
           const parsedLogs = logsResponse.data.data.logs.map(parseLogString);
+          fileStateStore.logs = parsedLogs;
           setFilteredLogs(parsedLogs);
         } catch (logsError) {
           console.error('로그 조회 실패:', logsError);
@@ -204,7 +192,38 @@ const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
     };
 
     uploadFile();
-  }, [uploadedFile, onUploadStatusChange]);
+  }, [uploadedFile, isUploading, onUploadStatusChange]);
+
+  const handleTagToggle = async (level) => {
+    // 파일이 없거나 로딩 중이면 필터 동작 막기
+    if (filterLoading || !fileStateStore.fileName) return;
+
+    const newLevels = selectedLevels.includes(level)
+      ? selectedLevels.length > 1
+        ? selectedLevels.filter((l) => l !== level)
+        : selectedLevels
+      : [...selectedLevels, level];
+
+    setSelectedLevels(newLevels);
+    fileStateStore.selectedLevels = newLevels;
+
+    // 필터 레벨이 변경된 후 즉시 로그를 가져옵니다
+    setFilterLoading(true);
+    setFilterError(null);
+
+    try {
+      const response = await logService.getErrorLogs(fileStateStore.fileName, newLevels);
+      const parsedLogs = response.data.data.logs.map(parseLogString);
+      fileStateStore.logs = parsedLogs;
+      setFilteredLogs(parsedLogs);
+    } catch (err) {
+      console.error('로그 조회 실패:', err);
+      setFilterError('로그 조회 중 오류가 발생했습니다.');
+      setFilteredLogs([]);
+    } finally {
+      setFilterLoading(false);
+    }
+  };
 
   return (
     <MonitoringContainer>
@@ -219,7 +238,7 @@ const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
       <StatsAndFilterWrapper>
         <UploadLogStatus totalCount={logStats.totalCount} errorCount={logStats.errorCount} />
         <FilterWrapper>
-          <LogFilter
+          <LogLevelFilter
             selectedLevels={selectedLevels}
             onToggle={handleTagToggle}
             isLoading={filterLoading}

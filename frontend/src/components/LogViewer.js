@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { logService } from '../services/api';
 import RealtimeMonitoring from './RealtimeMonitoring';
-import UploadMonitoring from './UploadMonitoring';
+import UploadMonitoring, { fileStateStore } from './UploadMonitoring';
 import { parseLogString } from '../utils/logParser';
 
 const LogContainer = styled.div`
@@ -107,6 +107,59 @@ const LogViewer = () => {
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [uploadError, setUploadError] = useState(false);
 
+  // 탭 변경 시 파일 상태 유지를 위한 ref 추가
+  const lastUploadedFileRef = useRef(null);
+
+  const handleTabChange = (newTab) => {
+    setActiveTab(newTab);
+    // 업로드 탭으로 돌아올 때 마지막 업로드된 파일 상태 복원
+    if (newTab === 'upload' && lastUploadedFileRef.current) {
+      setUploadedFile(lastUploadedFileRef.current);
+    }
+  };
+
+  const handleUploadStatusChange = ({ success, error }) => {
+    setUploadSuccess(success);
+    setUploadError(error);
+    // 성공적으로 업로드된 파일 저장
+    if (success) {
+      lastUploadedFileRef.current = uploadedFile;
+    }
+  };
+
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      // 새로운 파일이 업로드되면 모든 상태 초기화
+      lastUploadedFileRef.current = null;
+      // fileStateStore 초기화
+      fileStateStore.processedFile = null;
+      fileStateStore.logs = [];
+      fileStateStore.stats = { totalCount: 0, errorCount: 0 };
+      fileStateStore.fileName = null;
+      fileStateStore.selectedLevels = ['ERROR', 'WARN', 'INFO'];
+
+      setUploadedFile(file);
+      setUploadSuccess(false);
+      setUploadError(false);
+    }
+  };
+
+  const handleOtherFileUpload = () => {
+    // "다른 파일 업로드" 버튼 클릭 시에도 모든 상태 초기화
+    lastUploadedFileRef.current = null;
+    // fileStateStore 초기화
+    fileStateStore.processedFile = null;
+    fileStateStore.logs = [];
+    fileStateStore.stats = { totalCount: 0, errorCount: 0 };
+    fileStateStore.fileName = null;
+    fileStateStore.selectedLevels = ['ERROR', 'WARN', 'INFO'];
+
+    setUploadedFile(null);
+    setUploadSuccess(false);
+    setUploadError(false);
+  };
+
   useEffect(() => {
     const eventSource = new EventSource(`${process.env.REACT_APP_API_URL}/logs/stream`);
 
@@ -138,63 +191,67 @@ const LogViewer = () => {
     return () => eventSource.close();
   }, []);
 
-  const handleFileUpload = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      setUploadedFile(file);
-      setUploadSuccess(false);
-      setUploadError(false);
-    }
-  };
-
-  const handleUploadStatusChange = ({ success, error }) => {
-    setUploadSuccess(success);
-    setUploadError(error);
-  };
-
   return (
     <LogContainer>
       <ContentContainer>
         <LeftSection>
           <TabButtonContainer>
-            <TabButton $active={activeTab === 'realtime'} onClick={() => setActiveTab('realtime')}>
+            <TabButton
+              $active={activeTab === 'realtime'}
+              onClick={() => handleTabChange('realtime')}
+            >
               <TabText>실시간 로그 분석</TabText>
               <ConnectionDot $connected={connected} title={connected ? '연결됨' : '연결 끊김'} />
             </TabButton>
-            <TabButton $active={activeTab === 'upload'} onClick={() => setActiveTab('upload')}>
+            <TabButton $active={activeTab === 'upload'} onClick={() => handleTabChange('upload')}>
               <TabText>업로드 로그 분석</TabText>
             </TabButton>
           </TabButtonContainer>
 
-          {activeTab === 'upload' && !uploadedFile && (
-            <label htmlFor="log-file-upload">
-              <FileUploadArea $success={uploadSuccess} $error={uploadError}>
-                <UploadText $success={uploadSuccess} $error={uploadError}>
-                  로그 파일을 업로드하세요
-                </UploadText>
-              </FileUploadArea>
-              <input
-                id="log-file-upload"
-                type="file"
-                accept=".log,.txt"
-                onChange={handleFileUpload}
-                style={{ display: 'none' }}
-              />
-            </label>
-          )}
-
-          {activeTab === 'upload' && uploadedFile && (
-            <div>
-              <UploadText>현재 파일: {uploadedFile.name}</UploadText>
-              <button onClick={() => setUploadedFile(null)}>다른 파일 업로드</button>
-            </div>
+          {activeTab === 'upload' && (
+            <>
+              {!uploadedFile ? (
+                <label htmlFor="log-file-upload">
+                  <FileUploadArea $success={uploadSuccess} $error={uploadError}>
+                    <UploadText $success={uploadSuccess} $error={uploadError}>
+                      로그 파일을 업로드하세요
+                    </UploadText>
+                  </FileUploadArea>
+                  <input
+                    id="log-file-upload"
+                    type="file"
+                    accept=".log,.txt"
+                    onChange={handleFileUpload}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+              ) : (
+                <FileUploadArea $success={uploadSuccess} $error={uploadError}>
+                  <UploadText>현재 파일: {uploadedFile.name}</UploadText>
+                  <button
+                    onClick={handleOtherFileUpload}
+                    style={{
+                      marginTop: '8px',
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      border: '1px solid #e2e8f0',
+                      background: '#f8fafc',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    다른 파일 업로드
+                  </button>
+                </FileUploadArea>
+              )}
+            </>
           )}
         </LeftSection>
 
         <LogContent>
           {error && <ErrorMessage>{error}</ErrorMessage>}
-          {activeTab === 'realtime' && <RealtimeMonitoring logs={logs} />}
-          {activeTab === 'upload' && (
+          {activeTab === 'realtime' ? (
+            <RealtimeMonitoring logs={logs} />
+          ) : (
             <UploadMonitoring
               uploadedFile={uploadedFile}
               onUploadStatusChange={handleUploadStatusChange}
