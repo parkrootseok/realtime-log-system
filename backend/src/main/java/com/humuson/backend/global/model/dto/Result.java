@@ -31,4 +31,5 @@ public class Result<T> {
     public static <T> Result<T> empty() {
         return new Result<>(null);
     }
+
 }
