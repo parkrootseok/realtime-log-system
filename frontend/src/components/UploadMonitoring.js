@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Box, Tabs, Tab, Typography } from '@mui/material';
+import React, { useState, useEffect, useRef } from 'react';
+import { Box, Typography } from '@mui/material';
 import styled from 'styled-components';
 import { logService } from '../services/api';
 import {
@@ -12,21 +12,13 @@ import {
 } from './common/Table';
 import { LogLevel, FilterTag } from './common/LogLevel';
 import UploadLogStatus from './UploadLogStatus';
+import { parseLogString } from '../utils/logParser';
 
 const MonitoringContainer = styled.div`
   background: #ffffff;
   border-radius: 8px;
   padding: 24px;
   height: 100%;
-`;
-
-const FilterContainer = styled.div`
-  display: flex;
-  gap: 8px;
-`;
-
-const TabPanel = styled.div`
-  padding: 24px 0;
 `;
 
 const StatsAndFilterWrapper = styled.div`
@@ -43,26 +35,66 @@ const FilterWrapper = styled.div`
   flex-shrink: 0;
 `;
 
-const parseLogLine = (logLine) => {
-  // 예: "2025-02-24 15:55:58 INFO  [c.h.b.d.l.s.LogGeneratorService] - [InventoryService] - User login successful: user537"
-  const match = logLine.match(/^(\S+ \S+) (\w+)\s+\[([^\]]+)\] - \[([^\]]+)\] - (.+)$/);
-  if (match) {
-    return {
-      timestamp: match[1],
-      level: match[2],
-      logger: match[3],
-      service: match[4],
-      message: match[5],
-    };
-  }
-  return {
-    timestamp: '',
-    level: 'UNKNOWN',
-    logger: '',
-    service: '',
-    message: logLine,
-  };
-};
+const FilterContainer = styled.div`
+  display: flex;
+  gap: 8px;
+`;
+
+const ErrorBox = styled(Box)`
+  margin-bottom: 16px;
+  padding: 16px;
+  background-color: #fef2f2;
+  border-radius: 8px;
+  color: #dc2626;
+`;
+
+const LogTable = ({ logs }) => (
+  <TableContainer>
+    <TableHeader>
+      <TableHeaderRow>
+        <div>타임스탬프</div>
+        <div>레벨</div>
+        <div>서비스</div>
+        <div>메시지</div>
+      </TableHeaderRow>
+    </TableHeader>
+    {logs.length > 0 && (
+      <TableBody>
+        {logs.map((log, index) => (
+          <TableRow key={index}>
+            <TableCell>{log.timestamp}</TableCell>
+            <TableCell>
+              <LogLevel level={log.level}>{log.level}</LogLevel>
+            </TableCell>
+            <TableCell>{log.service}</TableCell>
+            <TableCell>{log.message}</TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    )}
+  </TableContainer>
+);
+
+const LogFilter = ({ selectedLevels, onToggle, isLoading }) => (
+  <FilterContainer>
+    {['ERROR', 'WARN', 'INFO'].map((level) => (
+      <FilterTag
+        key={level}
+        $selected={selectedLevels.includes(level)}
+        onClick={() => !isLoading && onToggle(level)}
+      >
+        <span
+          style={{
+            color: level === 'ERROR' ? '#dc2626' : level === 'WARN' ? '#f59e0b' : '#3b82f6',
+          }}
+        >
+          ●
+        </span>
+        {level}
+      </FilterTag>
+    ))}
+  </FilterContainer>
+);
 
 const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
   const [selectedLevels, setSelectedLevels] = useState(['ERROR', 'WARN', 'INFO']);
@@ -71,11 +103,29 @@ const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
   const [filterError, setFilterError] = useState(null);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [uploadError, setUploadError] = useState(null);
-  const [logStats, setLogStats] = useState({
-    totalCount: 0,
-    errorCount: 0,
-  });
+  const [logStats, setLogStats] = useState({ totalCount: 0, errorCount: 0 });
   const [uploadedFileName, setUploadedFileName] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const previousFileRef = useRef(null);
+
+  const fetchFilteredLogs = async () => {
+    if (!uploadedFileName) return;
+
+    setFilterLoading(true);
+    setFilterError(null);
+
+    try {
+      const response = await logService.getErrorLogs(uploadedFileName, selectedLevels);
+      const parsedLogs = response.data.data.logs.map(parseLogString);
+      setFilteredLogs(parsedLogs);
+    } catch (err) {
+      console.error('로그 조회 실패:', err);
+      setFilterError('로그 조회 중 오류가 발생했습니다.');
+      setFilteredLogs([]);
+    } finally {
+      setFilterLoading(false);
+    }
+  };
 
   const handleTagToggle = (level) => {
     if (filterLoading) return;
@@ -91,136 +141,94 @@ const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
     });
   };
 
-  const fetchFilteredLogs = async () => {
-    if (!uploadedFileName) return;
-
-    setFilterLoading(true);
-    setFilterError(null);
-
-    try {
-      const response = await logService.getErrorLogs(uploadedFileName, selectedLevels);
-      const rawLogs = response.data.data.logs;
-      const parsedLogs = rawLogs.map(parseLogLine);
-      setFilteredLogs(parsedLogs);
-    } catch (err) {
-      console.error('API 에러:', err);
-      setFilterError('로그 조회 중 오류가 발생했습니다.');
-      setFilteredLogs([]);
-    } finally {
-      setFilterLoading(false);
-    }
-  };
-
   useEffect(() => {
     const uploadFile = async () => {
-      if (!uploadedFile) return;
+      if (!uploadedFile || isUploading || uploadedFile === previousFileRef.current) return;
+
+      previousFileRef.current = uploadedFile;
+      setIsUploading(true);
 
       try {
-        console.log('파일 업로드 시작:', uploadedFile.name, uploadedFile.size);
+        console.log('업로드 요청 시작');
         const uploadResponse = await logService.uploadLogs(uploadedFile);
-        console.log('업로드 응답:', uploadResponse.data);
+        console.log('uploadResponse:', uploadResponse);
 
         const newFileName = uploadResponse.data.data;
-        if (!newFileName) {
-          throw new Error('파일 업로드에 실패했습니다.');
-        }
-
         setUploadedFileName(newFileName);
 
-        const [analysisResponse, logsResponse] = await Promise.all([
-          logService.analyzeLogs(newFileName),
-          logService.getErrorLogs(newFileName, selectedLevels),
-        ]);
+        console.log('파일 분석 시작:', newFileName);
 
-        console.log('로그 분석 결과:', analysisResponse.data);
+        try {
+          const analysisResponse = await logService.analyzeLogs(newFileName);
+          console.log('analysisResponse:', analysisResponse);
 
-        setLogStats({
-          totalCount: analysisResponse.data.data.totalLogsCount,
-          errorCount: analysisResponse.data.data.errorLogsCount,
-        });
+          // 응답 구조 변경
+          if (!analysisResponse || typeof analysisResponse.totalLines === 'undefined') {
+            throw new Error('로그 분석 응답이 올바르지 않습니다.');
+          }
 
-        const rawLogs = logsResponse.data.data.logs;
-        const parsedLogs = rawLogs.map(parseLogLine);
-        setFilteredLogs(parsedLogs);
+          setLogStats({
+            totalCount: analysisResponse.totalLines,
+            errorCount: analysisResponse.errorCount,
+          });
+        } catch (analysisError) {
+          console.error('분석 요청 실패:', analysisError);
+          throw new Error('로그 분석 중 오류가 발생했습니다.');
+        }
+
+        try {
+          const logsResponse = await logService.getErrorLogs(newFileName, selectedLevels);
+          console.log('logsResponse:', logsResponse);
+
+          if (!logsResponse?.data?.data?.logs) {
+            throw new Error('로그 조회 응답이 올바르지 않습니다.');
+          }
+
+          const parsedLogs = logsResponse.data.data.logs.map(parseLogString);
+          setFilteredLogs(parsedLogs);
+        } catch (logsError) {
+          console.error('로그 조회 실패:', logsError);
+          throw new Error('로그 조회 중 오류가 발생했습니다.');
+        }
 
         setUploadSuccess(true);
         onUploadStatusChange?.({ success: true, error: false });
-      } catch (err) {
-        console.error('파일 업로드 실패:', err);
-        const errorMessage = err.message || '파일 업로드 중 오류가 발생했습니다.';
-        setUploadError(errorMessage);
+      } catch (error) {
+        console.log('업로드 요청 실패:', error);
+        setUploadError(error.message || '파일 업로드 중 오류가 발생했습니다.');
         setFilteredLogs([]);
         onUploadStatusChange?.({ success: false, error: true });
+      } finally {
+        setIsUploading(false);
       }
     };
 
     uploadFile();
-  }, [uploadedFile, selectedLevels, onUploadStatusChange]);
-
-  const renderLogTable = (logsData) => (
-    <TableContainer>
-      <TableHeader>
-        <TableHeaderRow>
-          <div>타임스탬프</div>
-          <div>레벨</div>
-          <div>서비스</div>
-          <div>메시지</div>
-        </TableHeaderRow>
-      </TableHeader>
-      {logsData.length > 0 ? (
-        <TableBody>
-          {logsData.map((log, index) => (
-            <TableRow key={index}>
-              <TableCell>{log.timestamp}</TableCell>
-              <TableCell>
-                <LogLevel level={log.level}>{log.level}</LogLevel>
-              </TableCell>
-              <TableCell>{log.service}</TableCell>
-              <TableCell>{log.message}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      ) : null}
-    </TableContainer>
-  );
+  }, [uploadedFile, onUploadStatusChange]);
 
   return (
     <MonitoringContainer>
       {uploadError && (
-        <Box sx={{ mb: 2, p: 2, bgcolor: '#fef2f2', borderRadius: 1 }}>
+        <ErrorBox>
           <Typography variant="body2" color="error">
             {uploadError}
           </Typography>
-        </Box>
+        </ErrorBox>
       )}
 
       <StatsAndFilterWrapper>
         <UploadLogStatus totalCount={logStats.totalCount} errorCount={logStats.errorCount} />
         <FilterWrapper>
-          <FilterContainer>
-            {['ERROR', 'WARN', 'INFO'].map((level) => (
-              <FilterTag
-                key={level}
-                $selected={selectedLevels.includes(level)}
-                onClick={() => handleTagToggle(level)}
-              >
-                <span
-                  style={{
-                    color: level === 'ERROR' ? '#dc2626' : level === 'WARN' ? '#f59e0b' : '#3b82f6',
-                  }}
-                >
-                  ●
-                </span>
-                {level}
-              </FilterTag>
-            ))}
-          </FilterContainer>
+          <LogFilter
+            selectedLevels={selectedLevels}
+            onToggle={handleTagToggle}
+            isLoading={filterLoading}
+          />
         </FilterWrapper>
       </StatsAndFilterWrapper>
 
-      {filterError && <div style={{ color: '#dc2626', marginBottom: '16px' }}>{filterError}</div>}
-
-      {renderLogTable(filteredLogs)}
+      {filterError && <ErrorBox>{filterError}</ErrorBox>}
+      <LogTable logs={filteredLogs} />
     </MonitoringContainer>
   );
 };

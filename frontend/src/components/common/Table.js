@@ -1,35 +1,38 @@
 import styled from 'styled-components';
+import { COLORS } from '../../constants/colors';
+import { TABLE_CONFIG } from '../../constants/config';
 
 export const TableContainer = styled.div`
   width: 100%;
-  border: 1px solid #e2e8f0;
+  border: 1px solid ${COLORS.grey[200]};
   border-radius: 8px;
   overflow: hidden;
+  background: #ffffff;
 `;
 
 export const TableHeader = styled.div`
   width: 100%;
-  background-color: #f8fafc;
-  border-bottom: 1px solid #eef2f6;
+  background-color: ${COLORS.grey[50]};
+  border-bottom: 1px solid ${COLORS.grey[200]};
+  position: sticky;
+  top: 0;
+  z-index: 10;
 `;
 
 export const TableHeaderTop = styled.div`
   display: flex;
   justify-content: flex-end;
   padding: 12px 16px;
-  border-bottom: 1px solid #eef2f6;
+  border-bottom: 1px solid ${COLORS.grey[200]};
 `;
-
-const gridTemplateColumns = '200px 100px 200px 1fr';
 
 export const TableHeaderRow = styled.div`
   display: grid;
-  grid-template-columns: ${gridTemplateColumns};
+  grid-template-columns: ${TABLE_CONFIG.GRID_TEMPLATE};
   padding: 12px 16px;
   font-weight: 600;
-  color: #475569;
+  color: ${COLORS.grey[600]};
   font-size: 14px;
-  background-color: #f8fafc;
 
   > div {
     display: flex;
@@ -43,10 +46,11 @@ export const TableHeaderRow = styled.div`
 export const TableRow = styled(TableHeaderRow)`
   font-weight: normal;
   background-color: transparent;
-  border-bottom: 1px solid #eef2f6;
+  border-bottom: 1px solid ${COLORS.grey[200]};
+  transition: background-color 0.2s ease;
 
   &:hover {
-    background-color: #f8fafc;
+    background-color: ${COLORS.grey[50]};
   }
 
   &:last-child {
@@ -77,28 +81,41 @@ export const TableCell = styled.div`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: ${COLORS.grey[800]};
+  font-size: 14px;
 `;
 
 export const TableBody = styled.div`
   overflow-y: auto;
-  max-height: 600px;
+  max-height: ${TABLE_CONFIG.MAX_HEIGHT};
 
   &::-webkit-scrollbar {
     width: 6px;
   }
 
   &::-webkit-scrollbar-track {
-    background: #f8fafc;
+    background: ${COLORS.grey[50]};
   }
 
   &::-webkit-scrollbar-thumb {
-    background: #e2e8f0;
+    background: ${COLORS.grey[200]};
     border-radius: 3px;
+    transition: background-color 0.2s ease;
 
     &:hover {
-      background: #cbd5e1;
+      background: ${COLORS.grey[300]};
     }
   }
+`;
+
+export const EmptyState = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  color: ${COLORS.grey[500]};
+  font-size: 14px;
+  background: #ffffff;
 `;
 
 const renderLogTable = (logsData) => (

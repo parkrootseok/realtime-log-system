@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { LOG_LEVEL_STYLES } from '../../constants/logLevels';
 
 export const LogLevel = styled.span`
   padding: 4px 8px;
@@ -7,18 +8,14 @@ export const LogLevel = styled.span`
   font-weight: 500;
   min-width: 55px;
   text-align: center;
+  transition: all 0.2s ease;
 
   ${(props) => {
-    switch (props.level) {
-      case 'ERROR':
-        return 'background: #fee2e2; color: #dc2626;';
-      case 'WARN':
-        return 'background: #fef3c7; color: #d97706;';
-      case 'INFO':
-        return 'background: #dbeafe; color: #2563eb;';
-      default:
-        return 'background: #f3f4f6; color: #4b5563;';
-    }
+    const style = LOG_LEVEL_STYLES[props.level] || LOG_LEVEL_STYLES.DEFAULT;
+    return `
+      background: ${style.background};
+      color: ${style.color};
+    `;
   }}
 `;
 
@@ -41,3 +38,8 @@ export const FilterTag = styled.div`
     border-color: ${(props) => (props.$selected ? '#cbd5e1' : '#cbd5e1')};
   }
 `;
+
+export const getLevelDotColor = (level) => {
+  const style = LOG_LEVEL_STYLES[level] || LOG_LEVEL_STYLES.DEFAULT;
+  return style.dotColor;
+};

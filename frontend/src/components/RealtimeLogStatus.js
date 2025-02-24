@@ -52,6 +52,7 @@ const RefreshButton = styled.button`
   align-items: center;
   justify-content: center;
   color: #64748b;
+  transition: all 0.2s ease;
 
   &:hover {
     color: #3b82f6;
@@ -68,14 +69,30 @@ const RefreshButton = styled.button`
   }
 `;
 
+const RefreshIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    strokeWidth={1.5}
+    stroke="currentColor"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
+    />
+  </svg>
+);
+
 const RealtimeLogStatus = () => {
   const [stats, setStats] = useState({ totalLogsCount: 0, errorLogsCount: 0 });
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(new Date());
   const [timeString, setTimeString] = useState('방금 전');
 
-  const getRelativeTimeString = () => {
-    const diff = new Date() - lastUpdate;
+  const getRelativeTimeString = (date) => {
+    const diff = new Date() - date;
     const minutes = Math.floor(diff / 60000);
 
     if (minutes < 1) return '방금 전';
@@ -83,19 +100,13 @@ const RealtimeLogStatus = () => {
     return `${minutes}분 전`;
   };
 
-  useEffect(() => {
-    setTimeString(getRelativeTimeString());
-    const timer = setInterval(() => {
-      setTimeString(getRelativeTimeString());
-    }, 60000);
-
-    return () => clearInterval(timer);
-  }, [lastUpdate]);
-
   const fetchLogStats = async () => {
     try {
-      const response = await logService.analyzeLogs();
-      setStats(response.data.data);
+      const stats = await logService.analyzeLogs();
+      setStats({
+        totalLogsCount: stats.totalLines,
+        errorLogsCount: stats.errorCount,
+      });
       setLastUpdate(new Date());
     } catch (err) {
       console.error('로그 통계 조회 실패:', err);
@@ -111,9 +122,21 @@ const RealtimeLogStatus = () => {
 
   useEffect(() => {
     fetchLogStats();
-    const intervalId = setInterval(fetchLogStats, 300000);
-    return () => clearInterval(intervalId);
+    const statsInterval = setInterval(fetchLogStats, 300000); // 5분마다 갱신
+
+    return () => clearInterval(statsInterval);
   }, []);
+
+  useEffect(() => {
+    const updateTimeString = () => {
+      setTimeString(getRelativeTimeString(lastUpdate));
+    };
+
+    updateTimeString();
+    const timeInterval = setInterval(updateTimeString, 60000); // 1분마다 갱신
+
+    return () => clearInterval(timeInterval);
+  }, [lastUpdate]);
 
   return (
     <StatusWrapper>
@@ -128,19 +151,7 @@ const RealtimeLogStatus = () => {
       <UpdateTimeWrapper>
         <UpdateTime>마지막 갱신: {timeString}</UpdateTime>
         <RefreshButton onClick={handleRefresh} disabled={refreshing}>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={1.5}
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
-            />
-          </svg>
+          <RefreshIcon />
         </RefreshButton>
       </UpdateTimeWrapper>
     </StatusWrapper>
