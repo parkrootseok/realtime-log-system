@@ -1,16 +1,19 @@
 package com.humuson.backend.domain.log.controller;
 
 import com.humuson.backend.domain.log.model.response.LogAnalysisResponse;
+import com.humuson.backend.domain.log.model.response.ErrorLogResponse;
 import com.humuson.backend.global.model.dto.Result;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 
@@ -41,6 +44,20 @@ public class LogController {
         List<String> logs = Files.readAllLines(LOG_FILE_PATH);
         return Result.of(
                 LogAnalysisResponse.of(logs.size(), logs.stream().filter(line -> line.contains("ERROR")).count())
+        );
+    }
+
+    @GetMapping("/errors")
+    public Result<ErrorLogResponse> getErrorLogs(@RequestParam(required = false) String levels) throws IOException {
+        List<String> logLevels = levels != null ? Arrays.asList(levels.split(",")) : Arrays.asList("ERROR", "WARN", "INFO");
+
+        List<String> logs = Files.lines(LOG_FILE_PATH)
+                .filter(line -> logLevels.stream().anyMatch(level -> line.toUpperCase().contains(level.toUpperCase())))
+                .limit(100)
+                .toList();
+
+        return Result.of(
+                ErrorLogResponse.of(logs)
         );
     }
 
