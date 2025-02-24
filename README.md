@@ -108,20 +108,15 @@ Spring Boot 기반 로그 분석 시스템과 React 대시보드를 구현하여
 ## API 문서
 ### 1. POST /logs/upload
 - **설명**: 로그 파일 업로드 기능
-- **요구사항 충족 여부**: [ ] 구현 완료
-- **요청**: multipart/form-data  
 
 ### 2. GET /logs/analyze
 - **설명**: 전체 로그 및 ERROR 로그 개수 분석  
-- **요구사항 충족 여부**: [ ] 구현 완료
 
 ### 3. GET /logs/errors
 - **설명**: ERROR, WARN 로그 필터링 조회  
-- **요구사항 충족 여부**: [ ] 구현 완료
 
 ### 4. GET /logs/stream
 - **설명**: WebSocket 기반 실시간 로그 스트리밍  
-- **요구사항 충족 여부**: [ ] 구현 완료
 
 
 ## 웹 UI 설명
