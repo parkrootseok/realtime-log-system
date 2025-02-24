@@ -8,13 +8,17 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Stream;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Flux;
 
 @RestController
@@ -33,32 +37,49 @@ public class LogController {
     private Stream<String> readLastLines(int lines) {
         try (Stream<String> stream = Files.lines(LOG_FILE_PATH)) {
             long totalLines = Files.lines(LOG_FILE_PATH).count();
-            return stream.skip(Math.max(0, totalLines - lines)).toList().stream();
+            return stream.skip(Math.max(0, totalLines - lines))
+                         .sorted(Comparator.reverseOrder())
+                         .toList()
+                         .stream();
         } catch (Exception e) {
             return Stream.of("No logs available...").toList().stream();
         }
     }
 
     @GetMapping("/analyze")
-    public Result<LogAnalysisResponse> getLogStats() throws IOException {
-        List<String> logs = Files.readAllLines(LOG_FILE_PATH);
+    public Result<LogAnalysisResponse> getLogStats(@RequestParam(required = false) String fileName) throws IOException {
+        Path logFilePath = fileName != null ? Path.of("logs", fileName) : LOG_FILE_PATH;
+        List<String> logs = Files.readAllLines(logFilePath);
         return Result.of(
                 LogAnalysisResponse.of(logs.size(), logs.stream().filter(line -> line.contains("ERROR")).count())
         );
     }
 
     @GetMapping("/errors")
-    public Result<ErrorLogResponse> getErrorLogs(@RequestParam(required = false) String levels) throws IOException {
+    public Result<ErrorLogResponse> getErrorLogs(@RequestParam(required = false) String fileName, @RequestParam(required = false) String levels) throws IOException {
+        Path logFilePath = fileName != null ? Path.of("logs", fileName) : LOG_FILE_PATH;
         List<String> logLevels = levels != null ? Arrays.asList(levels.split(",")) : Arrays.asList("ERROR", "WARN", "INFO");
-
-        List<String> logs = Files.lines(LOG_FILE_PATH)
-                .filter(line -> logLevels.stream().anyMatch(level -> line.toUpperCase().contains(level.toUpperCase())))
-                .limit(100)
-                .toList();
-
+        List<String> logs = Files.lines(logFilePath).filter(line -> logLevels.stream().anyMatch(level -> line.toUpperCase().contains(level.toUpperCase()))).toList();
         return Result.of(
                 ErrorLogResponse.of(logs)
         );
+    }
+
+    @PostMapping("/upload")
+    public Result<String> uploadLogFile(@RequestParam("file") MultipartFile file) {
+        try {
+            System.out.println(file);
+            if (!file.isEmpty() && (file.getOriginalFilename().endsWith(".log") || file.getOriginalFilename().endsWith(".txt"))) {
+                String newFileName = UUID.randomUUID() + ".log";
+                Path destination = LOG_FILE_PATH.resolveSibling(newFileName);
+                Files.copy(file.getInputStream(), destination);
+                return Result.of(newFileName);
+            } else {
+                return Result.of(null);
+            }
+        } catch (IOException e) {
+            return Result.of(null);
+        }
     }
 
 }
