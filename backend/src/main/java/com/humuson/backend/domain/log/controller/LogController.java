@@ -3,6 +3,7 @@ package com.humuson.backend.domain.log.controller;
 import com.humuson.backend.domain.log.model.response.LogAnalysisResponse;
 import com.humuson.backend.domain.log.model.response.ErrorLogResponse;
 import com.humuson.backend.global.model.dto.Result;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -48,11 +49,28 @@ public class LogController {
 
     @GetMapping("/analyze")
     public Result<LogAnalysisResponse> getLogStats(@RequestParam(required = false) String fileName) throws IOException {
+
         Path logFilePath = fileName != null ? Path.of("logs", fileName) : LOG_FILE_PATH;
-        List<String> logs = Files.readAllLines(logFilePath);
-        return Result.of(
-                LogAnalysisResponse.of(logs.size(), logs.stream().filter(line -> line.contains("ERROR")).count())
-        );
+        if (!Files.exists(logFilePath)) {
+            throw new FileNotFoundException("로그 파일을 찾을 수 없습니다: " + logFilePath);
+        }
+
+        try (Stream<String> logStream = Files.lines(logFilePath)) {
+
+            long totalLines = 0;
+            long errorCount = 0;
+
+            for (String line : (Iterable<String>) logStream::iterator) {
+                totalLines++;
+                if (line.contains("ERROR")) {
+                    errorCount++;
+                }
+            }
+
+            return Result.of(LogAnalysisResponse.of(totalLines, errorCount));
+
+        }
+
     }
 
     @GetMapping("/errors")
@@ -68,7 +86,6 @@ public class LogController {
     @PostMapping("/upload")
     public Result<String> uploadLogFile(@RequestParam("file") MultipartFile file) {
         try {
-            System.out.println(file);
             if (!file.isEmpty() && (file.getOriginalFilename().endsWith(".log") || file.getOriginalFilename().endsWith(".txt"))) {
                 String newFileName = UUID.randomUUID() + ".log";
                 Path destination = LOG_FILE_PATH.resolveSibling(newFileName);
