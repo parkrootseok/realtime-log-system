@@ -11,12 +11,3 @@ spring:
       enabled: true
       stop:
         command: down
-
-logging:
-  file:
-    name: logs/app.log  # 로그 파일 위치
-  level:
-    root: off
-    com.humuson.backend.domain.log.service.LogGeneratorService: info    # LogGeneratorService 로그만 수집
-  pattern:
-    file: "%d{yyyy-MM-dd HH:mm:ss} %-5level [%logger{1}] - %msg%n"  # 로그 출력 형식
