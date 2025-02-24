@@ -1,8 +1,12 @@
 package com.humuson.backend.domain.log.controller;
 
+import com.humuson.backend.domain.log.model.response.LogAnalysisResponse;
+import com.humuson.backend.global.model.dto.Result;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.List;
 import java.util.stream.Stream;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,6 +34,14 @@ public class LogController {
         } catch (Exception e) {
             return Stream.of("No logs available...").toList().stream();
         }
+    }
+
+    @GetMapping("/analyze")
+    public Result<LogAnalysisResponse> getLogStats() throws IOException {
+        List<String> logs = Files.readAllLines(LOG_FILE_PATH);
+        return Result.of(
+                LogAnalysisResponse.of(logs.size(), logs.stream().filter(line -> line.contains("ERROR")).count())
+        );
     }
 
 }

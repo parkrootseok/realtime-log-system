@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import LogStats from './LogStats';
 
 const LogContainer = styled.div`
   padding: 20px;
@@ -29,9 +30,18 @@ const LogTable = styled.table`
   }
 `;
 
+const HeaderContainer = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+`;
+
 const LogHeader = styled.h1`
   color: #333;
-  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  margin: 0;
 `;
 
 const StatusIndicator = styled.div`
@@ -140,11 +150,16 @@ const LogViewer = () => {
 
   return (
     <LogContainer>
-      <LogHeader>
-        시스템 로그
-        <StatusIndicator $isConnected={connected} title={connected ? '연결됨' : '연결 끊김'} />
-      </LogHeader>
+      <HeaderContainer>
+        <LogHeader>
+          시스템 로그
+          <StatusIndicator $isConnected={connected} title={connected ? '연결됨' : '연결 끊김'} />
+        </LogHeader>
+        <LogStats />
+      </HeaderContainer>
+
       {error && <div style={{ color: '#f44336', marginBottom: '10px' }}>{error}</div>}
+
       <LogTable>
         <thead>
           <tr>
