@@ -161,34 +161,43 @@ const LogViewer = () => {
   };
 
   useEffect(() => {
+    console.log('SSE 연결 시도:', `${process.env.REACT_APP_API_URL}/logs/stream`);
     const eventSource = new EventSource(`${process.env.REACT_APP_API_URL}/logs/stream`);
 
     eventSource.onopen = () => {
+      console.log('SSE 연결 성공');
       setConnected(true);
       setError(null);
     };
 
     eventSource.onmessage = (event) => {
+      console.log('SSE 메시지 수신:', event.data);
       try {
-        const parsedLog = parseLogString(event.data);
+        const logData = JSON.parse(event.data);
+        console.log('파싱된 로그 데이터:', logData);
 
-        if (parsedLog.timestamp) {
+        if (logData.timestamp) {
           setLogs((prevLogs) => {
-            const newLogs = [...prevLogs, parsedLog];
+            const newLogs = [...prevLogs, logData];
             return newLogs.slice(-20);
           });
         }
       } catch (error) {
         console.error('로그 파싱 에러:', error);
+        console.error('원본 데이터:', event.data);
       }
     };
 
-    eventSource.onerror = () => {
+    eventSource.onerror = (error) => {
+      console.error('SSE 연결 에러:', error);
       setConnected(false);
       setError('서버 연결이 끊어졌습니다. 재연결을 시도합니다...');
     };
 
-    return () => eventSource.close();
+    return () => {
+      console.log('SSE 연결 종료');
+      eventSource.close();
+    };
   }, []);
 
   return (

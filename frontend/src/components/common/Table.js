@@ -28,7 +28,7 @@ export const TableHeaderTop = styled.div`
 
 export const TableHeaderRow = styled.div`
   display: grid;
-  grid-template-columns: ${TABLE_CONFIG.GRID_TEMPLATE};
+  grid-template-columns: 180px 100px 150px 1fr;
   padding: 12px 16px;
   font-weight: 600;
   color: ${COLORS.grey[600]};

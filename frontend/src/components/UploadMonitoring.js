@@ -12,7 +12,6 @@ import {
 } from './common/Table';
 import { LogLevel, FilterTag } from './common/LogLevel';
 import UploadLogStatus from './UploadLogStatus';
-import { parseLogString } from '../utils/logParser';
 import LogLevelFilter from './common/LogLevelFilter';
 
 const MonitoringContainer = styled.div`
@@ -44,21 +43,21 @@ const LogTable = ({ logs }) => (
   <TableContainer>
     <TableHeader>
       <TableHeaderRow>
-        <div>타임스탬프</div>
+        <div>발생시각</div>
         <div>레벨</div>
-        <div>서비스</div>
+        <div>발생위치</div>
         <div>메시지</div>
       </TableHeaderRow>
     </TableHeader>
     {logs.length > 0 && (
       <TableBody>
         {logs.map((log, index) => (
-          <TableRow key={index}>
-            <TableCell>{log.timestamp}</TableCell>
+          <TableRow key={`${log.timestamp}-${log.message}-${index}`}>
+            <TableCell>{new Date(log.timestamp).toLocaleString()}</TableCell>
             <TableCell>
               <LogLevel level={log.level}>{log.level}</LogLevel>
             </TableCell>
-            <TableCell>{log.service}</TableCell>
+            <TableCell>{log.serviceName}</TableCell>
             <TableCell>{log.message}</TableCell>
           </TableRow>
         ))}
@@ -171,12 +170,13 @@ const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
             throw new Error('로그 조회 응답이 올바르지 않습니다.');
           }
 
-          const parsedLogs = logsResponse.data.data.logs.map(parseLogString);
-          fileStateStore.logs = parsedLogs;
-          setFilteredLogs(parsedLogs);
-        } catch (logsError) {
-          console.error('로그 조회 실패:', logsError);
-          throw new Error('로그 조회 중 오류가 발생했습니다.');
+          const logs = logsResponse.data.data.logs;
+          fileStateStore.logs = logs;
+          setFilteredLogs(logs);
+        } catch (err) {
+          console.error('로그 조회 실패:', err);
+          setFilterError('로그 조회 중 오류가 발생했습니다.');
+          setFilteredLogs([]);
         }
 
         setUploadSuccess(true);
@@ -213,9 +213,9 @@ const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
 
     try {
       const response = await logService.getErrorLogs(fileStateStore.fileName, newLevels);
-      const parsedLogs = response.data.data.logs.map(parseLogString);
-      fileStateStore.logs = parsedLogs;
-      setFilteredLogs(parsedLogs);
+      const logs = response.data.data.logs;
+      fileStateStore.logs = logs;
+      setFilteredLogs(logs);
     } catch (err) {
       console.error('로그 조회 실패:', err);
       setFilterError('로그 조회 중 오류가 발생했습니다.');

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Box, Tabs, Tab } from '@mui/material';
 import styled from 'styled-components';
 import { logService } from '../services/api';
-import { parseLogString } from '../utils/logParser';
 import {
   TableContainer,
   TableHeader,
@@ -51,20 +50,20 @@ const LogTable = React.memo(
     <TableContainer>
       <TableHeader>
         <TableHeaderRow>
-          <div>타임스탬프</div>
+          <div>발생시각</div>
           <div>레벨</div>
-          <div>서비스</div>
+          <div>발생위치</div>
           <div>메시지</div>
         </TableHeaderRow>
       </TableHeader>
       <TableBody>
         {logs.map((log) => (
-          <TableRow key={`${log.timestamp}-${log.message}-${log.level}`}>
-            <TableCell>{log.timestamp}</TableCell>
+          <TableRow key={`${log.timestamp}-${log.message}`}>
+            <TableCell>{new Date(log.timestamp).toLocaleString()}</TableCell>
             <TableCell>
               <LogLevel level={log.level}>{log.level}</LogLevel>
             </TableCell>
-            <TableCell>{log.service}</TableCell>
+            <TableCell>{log.serviceName}</TableCell>
             <TableCell>{log.message}</TableCell>
           </TableRow>
         ))}
@@ -72,7 +71,6 @@ const LogTable = React.memo(
     </TableContainer>
   ),
   (prevProps, nextProps) => {
-    // 로그 배열의 길이가 같고 마지막 로그가 같으면 리렌더링하지 않음
     return (
       prevProps.logs.length === nextProps.logs.length &&
       prevProps.logs[prevProps.logs.length - 1]?.timestamp ===
@@ -97,11 +95,25 @@ const RealtimeMonitoring = ({ logs }) => {
     setFilterError(null);
 
     try {
+      console.log('로그 필터링 요청 파라미터:', {
+        levels: selectedLevels,
+      });
+
       const response = await logService.getErrorLogs(undefined, selectedLevels);
-      const parsedLogs = response.data.data.logs.map(parseLogString);
-      setFilteredLogs(parsedLogs);
+      console.log('로그 필터링 응답:', response);
+
+      if (!response?.data?.data?.logs) {
+        console.error('응답 데이터 구조 확인:', response);
+        throw new Error('로그 조회 응답이 올바르지 않습니다.');
+      }
+
+      setFilteredLogs(response.data.data.logs);
     } catch (err) {
       console.error('로그 조회 실패:', err);
+      console.error('에러 상세:', {
+        message: err.message,
+        response: err.response,
+      });
       setFilterError('로그 조회 중 오류가 발생했습니다.');
       setFilteredLogs([]);
     } finally {
@@ -125,6 +137,7 @@ const RealtimeMonitoring = ({ logs }) => {
 
   useEffect(() => {
     if (activeTab === 1) {
+      console.log('필터링 탭 활성화, 선택된 레벨:', selectedLevels);
       fetchFilteredLogs();
     }
   }, [activeTab, selectedLevels]);
