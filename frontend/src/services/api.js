@@ -92,9 +92,12 @@ class LogService {
     if (levels) params.levels = levels;
 
     const response = await handleApiResponse(apiClient.get('/logs/analyze', { params }));
+
     return {
       totalLines: response.data.data.totalLogsCount,
+      infoCount: response.data.data.infoLogsCount,
       errorCount: response.data.data.errorLogsCount,
+      warnCount: response.data.data.warningLogsCount,
     };
   }
 

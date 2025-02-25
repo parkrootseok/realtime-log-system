@@ -118,12 +118,14 @@ const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
         const newFileName = uploadResponse.data.data;
 
         // 로그 분석
-        const analysisResponse = await logService.analyzeLogs(newFileName, 'ERROR');
+        const analysisResponse = await logService.analyzeLogs(newFileName, 'ERROR,WARN,INFO');
         console.log(analysisResponse);
 
         const newStats = {
           totalCount: analysisResponse.totalLines,
+          infoCount: analysisResponse.infoCount,
           errorCount: analysisResponse.errorCount,
+          warnCount: analysisResponse.warnCount,
         };
 
         console.log('newStats', newStats);

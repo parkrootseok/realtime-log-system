@@ -29,7 +29,7 @@ const useUploadStore = create((set) => ({
       uploadError: null,
       filterError: null,
       filteredLogs: [],
-      stats: { totalCount: 0, errorCount: 0 },
+      stats: { totalCount: 0, infoCount: 0, errorCount: 0, warnCount: 0 },
       selectedLevels: ['ERROR', 'WARN', 'INFO'],
     }),
 
@@ -87,6 +87,9 @@ const useUploadStore = create((set) => ({
 
   // 초기화
   resetUploadState: () => set(initialState),
+
+  // stats 초기화 함수 추가
+  resetStats: () => set({ stats: null }), // 또는 초기 stats 객체로 설정
 }));
 
 export default useUploadStore;

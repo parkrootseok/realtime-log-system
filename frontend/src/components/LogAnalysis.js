@@ -14,6 +14,7 @@ import {
   BarElement,
   Title,
 } from 'chart.js';
+import useUploadStore from '../stores/uploadStore'; // uploadStore import
 
 // Chart.js 컴포넌트 등록
 ChartJS.register(
@@ -55,24 +56,16 @@ const TimeUnitToggle = styled(ToggleButtonGroup)`
 const LogAnalysis = ({ logs = [] }) => {
   const [timeUnit, setTimeUnit] = useState('day');
 
-  // 로그 레벨별 데이터 계산
-  const logLevelCounts = logs.reduce(
-    (acc, log) => {
-      const level = log.level.toUpperCase();
-      if (level === 'INFO') acc.info += 1;
-      else if (level === 'WARN') acc.warn += 1;
-      else if (level === 'ERROR') acc.error += 1;
-      return acc;
-    },
-    { info: 0, warn: 0, error: 0 }
-  );
+  // uploadStore에서 stats와 현재 파일 상태 가져오기
+  const stats = useUploadStore((state) => state.stats);
+  const uploadedFile = useUploadStore((state) => state.uploadedFile);
 
-  // 원형 차트 데이터
+  // 원형 차트 데이터 - uploadStore의 stats 사용
   const pieChartData = {
     labels: ['INFO', 'WARN', 'ERROR'],
     datasets: [
       {
-        data: [logLevelCounts.info, logLevelCounts.warn, logLevelCounts.error],
+        data: [stats?.infoCount || 0, stats?.warnCount || 0, stats?.errorCount || 0],
         backgroundColor: ['#3b82f6', '#f59e0b', '#ef4444'],
         borderColor: ['#2563eb', '#d97706', '#dc2626'],
         borderWidth: 1,
@@ -82,7 +75,8 @@ const LogAnalysis = ({ logs = [] }) => {
 
   // 시간대별 로그 데이터 계산
   const getTimeSeriesData = () => {
-    if (!logs.length) return [];
+    // 파일이 업로드되지 않았거나 로그가 없으면 빈 배열 반환
+    if (!uploadedFile || !logs.length) return [];
 
     const timeData = {};
 
@@ -91,10 +85,8 @@ const LogAnalysis = ({ logs = [] }) => {
 
       let timeKey;
       if (timeUnit === 'day') {
-        // 일 단위 포맷: YYYY-MM-DD
         timeKey = timestamp.toISOString().split('T')[0];
       } else {
-        // 시간 단위 포맷: YYYY-MM-DD HH
         const date = timestamp.toISOString().split('T')[0];
         const hour = timestamp.getHours().toString().padStart(2, '0');
         timeKey = `${date} ${hour}:00`;
@@ -240,7 +232,22 @@ const LogAnalysis = ({ logs = [] }) => {
               </TimeUnitToggle>
             </Box>
             <Box sx={{ height: '100%', width: '100%' }}>
-              <Line data={timeChartData} options={timeChartOptions} />
+              {uploadedFile ? (
+                <Line data={timeChartData} options={timeChartOptions} />
+              ) : (
+                <Box
+                  sx={{
+                    height: '100%',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Typography variant="body1" color="text.secondary">
+                    파일을 업로드하면 시간대별 로그 발생량이 표시됩니다.
+                  </Typography>
+                </Box>
+              )}
             </Box>
           </ChartContainer>
         </Grid>
@@ -265,7 +272,7 @@ const LogAnalysis = ({ logs = [] }) => {
                     총 로그 수
                   </Typography>
                   <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                    {logs.length}
+                    {uploadedFile ? stats?.totalCount || logs.length : 0}
                   </Typography>
                 </Box>
               </Grid>
@@ -282,7 +289,10 @@ const LogAnalysis = ({ logs = [] }) => {
                     에러 비율
                   </Typography>
                   <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                    {logs.length ? Math.round((logLevelCounts.error / logs.length) * 100) : 0}%
+                    {uploadedFile && stats?.totalCount
+                      ? Math.round((stats.errorCount / stats.totalCount) * 100)
+                      : 0}
+                    %
                   </Typography>
                 </Box>
               </Grid>
@@ -299,7 +309,10 @@ const LogAnalysis = ({ logs = [] }) => {
                     경고 비율
                   </Typography>
                   <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                    {logs.length ? Math.round((logLevelCounts.warn / logs.length) * 100) : 0}%
+                    {uploadedFile && stats?.totalCount
+                      ? Math.round((stats.warnCount / stats.totalCount) * 100)
+                      : 0}
+                    %
                   </Typography>
                 </Box>
               </Grid>
