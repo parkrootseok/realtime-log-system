@@ -16,8 +16,8 @@ public class LogUseCase {
     private final AnalysisService analysisService;
     private final UploadService uploadService;
 
-    public LogAnalysisResponse analyzeLogs(String fileName) throws IOException {
-        return analysisService.analyzeLogs(fileName);
+    public LogAnalysisResponse analyzeLogs(String fileName, String levels) throws IOException {
+        return analysisService.analyzeLogs(fileName, levels);
     }
 
     public ErrorLogResponse getErrorLogs(String fileName, String levels) throws IOException {

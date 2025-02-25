@@ -6,7 +6,7 @@ import java.io.IOException;
 
 public interface AnalysisService {
 
-    LogAnalysisResponse analyzeLogs(String fileName) throws IOException;
+    LogAnalysisResponse analyzeLogs(String fileName, String levels) throws IOException;
     ErrorLogResponse getErrorLogs(String fileName, String levels) throws IOException;
 
 }
