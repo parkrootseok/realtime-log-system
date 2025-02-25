@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Box, Tabs, Tab } from '@mui/material';
 import styled from 'styled-components';
 import { logService } from '../services/api';
@@ -10,10 +10,11 @@ import {
   TableCell,
   TableBody,
 } from './common/Table';
-import { LogLevel, FilterTag } from './common/LogLevel';
+import { LogLevel } from './common/LogLevel';
 import RealtimeLogStatus from './RealtimeLogStatus';
 import LogLevelFilter from './common/LogLevelFilter';
 import useRealtimeStore from '../stores/realtimeStore';
+import LogAnalysis from './LogAnalysis';
 
 const MonitoringContainer = styled.div`
   background: #ffffff;
@@ -29,14 +30,7 @@ const FilterWrapper = styled.div`
   margin-bottom: 24px;
 `;
 
-const FilterContainer = styled.div`
-  display: flex;
-  gap: 8px;
-`;
-
-const TabPanel = styled.div`
-  padding: 24px 0;
-`;
+const TabPanel = styled.div``;
 
 const ErrorBox = styled.div`
   color: #dc2626;
@@ -108,8 +102,61 @@ const RealtimeMonitoring = ({ logs }) => {
     setFilterError,
   } = useRealtimeStore();
 
+  // 공유할 실시간 로그 통계 상태 - 모든 탭에서 사용할 통합된 상태
+  const [realtimeStats, setRealtimeStats] = useState({
+    totalLogsCount: 0,
+    errorCount: 0,
+    infoCount: 0,
+    warnCount: 0,
+  });
+
+  const [lastUpdate, setLastUpdate] = useState(new Date());
+
+  // 실시간 로그 분석 옵션
+  const [realtimeOptions, setRealtimeOptions] = useState({
+    refreshInterval: 60000, // 기본 1분
+    chartType: 'line',
+    timeRange: 'day',
+  });
+
+  const handleStatsChange = (newStats) => {
+    setRealtimeStats({
+      totalLogsCount: newStats.totalLogsCount || 0,
+      errorCount: newStats.errorLogsCount || 0,
+      infoCount: newStats.infoLogsCount || 0,
+      warnCount: newStats.warnLogsCount || 0,
+    });
+    setLastUpdate(new Date());
+  };
+
+  // 실시간 로그 통계 가져오기
+  const fetchRealtimeStats = async () => {
+    try {
+      const stats = await logService.analyzeLogs('', 'ERROR,WARN,INFO');
+      setRealtimeStats({
+        totalLogsCount: stats.totalLines || 0,
+        errorCount: stats.errorCount || 0,
+        infoCount: stats.infoCount || 0,
+        warnCount: stats.warnCount || 0,
+      });
+      setLastUpdate(new Date());
+    } catch (err) {
+      console.error('실시간 로그 통계 조회 실패:', err);
+    }
+  };
+
+  // 컴포넌트가 마운트될 때와 주기적으로 데이터 가져오기
+  useEffect(() => {
+    // 초기 데이터 로드
+    fetchRealtimeStats();
+
+    // 주기적으로 통계 업데이트
+    const intervalId = setInterval(fetchRealtimeStats, realtimeOptions.refreshInterval);
+    return () => clearInterval(intervalId);
+  }, [realtimeOptions.refreshInterval]);
+
   const fetchFilteredLogs = async () => {
-    if (activeTab !== 1) return;
+    if (activeTab !== 2) return;
 
     setFilterLoading(true);
     setFilterError(null);
@@ -153,7 +200,7 @@ const RealtimeMonitoring = ({ logs }) => {
   };
 
   useEffect(() => {
-    if (activeTab === 1) {
+    if (activeTab === 2) {
       fetchFilteredLogs();
     }
   }, [activeTab, selectedLevels]);
@@ -161,37 +208,62 @@ const RealtimeMonitoring = ({ logs }) => {
   return (
     <MonitoringContainer>
       <Box sx={{ width: '100%' }}>
-        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', marginBottom: '16px' }}>
           <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)}>
-            <Tab label="실시간 로그" />
+            <Tab label="로그 분석" />
+            <Tab label="실시간 로그 조회" />
             <Tab label="로그 필터링" />
           </Tabs>
         </Box>
 
-        <TabPanel role="tabpanel" hidden={activeTab !== 0}>
-          {activeTab === 0 && (
-            <>
-              <RealtimeLogStatus />
-              <LogTable logs={logs} />
-            </>
-          )}
-        </TabPanel>
+        {activeTab === 0 && (
+          <LogAnalysis
+            logs={logs}
+            source="realtime"
+            realtimeStats={{
+              totalLogsCount: realtimeStats.totalLogsCount || 0,
+              errorCount: realtimeStats.errorCount || 0,
+              infoCount: realtimeStats.infoCount || 0,
+              warnCount: realtimeStats.warnCount || 0,
+            }}
+            realtimeOptions={realtimeOptions}
+            onRealtimeAnalysisAction={(action, params) => {
+              if (action === 'changeOptions' && params) {
+                setRealtimeOptions((prev) => ({ ...prev, ...params }));
+              }
+            }}
+          />
+        )}
 
-        <TabPanel role="tabpanel" hidden={activeTab !== 1}>
-          {activeTab === 1 && (
-            <>
-              {filterError && <ErrorBox>{filterError}</ErrorBox>}
-              <FilterWrapper>
-                <LogLevelFilter
-                  selectedLevels={selectedLevels}
-                  onToggle={handleTagToggle}
-                  isLoading={filterLoading}
-                />
-              </FilterWrapper>
-              <LogTable logs={filteredLogs} />
-            </>
-          )}
-        </TabPanel>
+        {activeTab === 1 && (
+          <>
+            <RealtimeLogStatus
+              stats={{
+                totalLogsCount: realtimeStats.totalLogsCount || 0,
+                errorLogsCount: realtimeStats.errorCount || 0,
+                infoLogsCount: realtimeStats.infoCount || 0,
+                warnLogsCount: realtimeStats.warnCount || 0,
+              }}
+              lastUpdate={lastUpdate}
+              onStatsChange={handleStatsChange}
+            />
+            <LogTable logs={logs} />
+          </>
+        )}
+
+        {activeTab === 2 && (
+          <>
+            {filterError && <ErrorBox>{filterError}</ErrorBox>}
+            <FilterWrapper>
+              <LogLevelFilter
+                selectedLevels={selectedLevels}
+                onToggle={handleTagToggle}
+                isLoading={filterLoading}
+              />
+            </FilterWrapper>
+            <LogTable logs={filteredLogs} />
+          </>
+        )}
       </Box>
     </MonitoringContainer>
   );

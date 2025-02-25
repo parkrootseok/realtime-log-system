@@ -64,11 +64,20 @@ const RefreshIcon = () => (
   </svg>
 );
 
-const RealtimeLogStatus = () => {
-  const [stats, setStats] = useState({ totalLogsCount: 0, errorLogsCount: 0 });
+const RealtimeLogStatus = ({ stats, lastUpdate, onStatsChange }) => {
+  const [internalStats, setInternalStats] = useState({
+    totalLogsCount: 0,
+    errorLogsCount: 0,
+    infoLogsCount: 0,
+    warnLogsCount: 0,
+  });
   const [refreshing, setRefreshing] = useState(false);
-  const [lastUpdate, setLastUpdate] = useState(new Date());
+  const [internalLastUpdate, setInternalLastUpdate] = useState(new Date());
   const [timeString, setTimeString] = useState('방금 전');
+
+  // 실제로 사용할 stats와 lastUpdate 결정
+  const effectiveStats = stats || internalStats;
+  const effectiveLastUpdate = lastUpdate || internalLastUpdate;
 
   const getRelativeTimeString = (date) => {
     const diff = new Date() - date;
@@ -81,12 +90,20 @@ const RealtimeLogStatus = () => {
 
   const fetchLogStats = async () => {
     try {
-      const stats = await logService.analyzeLogs('', 'ERROR');
-      setStats({
-        totalLogsCount: stats.totalLines,
-        errorLogsCount: stats.errorCount,
-      });
-      setLastUpdate(new Date());
+      const statsData = await logService.analyzeLogs('', 'ERROR,WARN,INFO');
+      const newStats = {
+        totalLogsCount: statsData.totalLines,
+        infoLogsCount: statsData.infoCount,
+        warnLogsCount: statsData.warnCount,
+        errorLogsCount: statsData.errorCount,
+      };
+
+      setInternalStats(newStats);
+      setInternalLastUpdate(new Date());
+
+      if (onStatsChange) {
+        onStatsChange(newStats);
+      }
     } catch (err) {
       console.error('로그 통계 조회 실패:', err);
     }
@@ -100,27 +117,32 @@ const RealtimeLogStatus = () => {
   };
 
   useEffect(() => {
-    fetchLogStats();
-    const statsInterval = setInterval(fetchLogStats, 300000); // 5분마다 갱신
-
-    return () => clearInterval(statsInterval);
-  }, []);
+    if (!stats) {
+      fetchLogStats();
+      const statsInterval = setInterval(fetchLogStats, 300000);
+      return () => clearInterval(statsInterval);
+    }
+  }, [stats]);
 
   useEffect(() => {
     const updateTimeString = () => {
-      setTimeString(getRelativeTimeString(lastUpdate));
+      setTimeString(getRelativeTimeString(effectiveLastUpdate));
     };
 
     updateTimeString();
     const timeInterval = setInterval(updateTimeString, 60000); // 1분마다 갱신
 
     return () => clearInterval(timeInterval);
-  }, [lastUpdate]);
+  }, [effectiveLastUpdate]);
 
   return (
     <StatusWrapper>
-      <StatusItem label="전체 로그" value={stats.totalLogsCount.toLocaleString()} />
-      <StatusItem label="에러" value={stats.errorLogsCount.toLocaleString()} type="error" />
+      <StatusItem label="전체 로그" value={effectiveStats.totalLogsCount.toLocaleString()} />
+      <StatusItem
+        label="에러"
+        value={effectiveStats.errorLogsCount.toLocaleString()}
+        type="error"
+      />
       <UpdateTimeWrapper>
         <UpdateTime>마지막 갱신: {timeString}</UpdateTime>
         <RefreshButton onClick={handleRefresh} disabled={refreshing}>
@@ -129,6 +151,13 @@ const RealtimeLogStatus = () => {
       </UpdateTimeWrapper>
     </StatusWrapper>
   );
+};
+
+// 기본 props 설정
+RealtimeLogStatus.defaultProps = {
+  stats: null,
+  lastUpdate: null,
+  onStatsChange: null,
 };
 
 export default RealtimeLogStatus;
