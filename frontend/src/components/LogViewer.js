@@ -111,7 +111,7 @@ const LogViewer = () => {
     setUploadSuccess,
     setUploadError,
   } = useUploadStore();
-  const { connected, error, logs, setConnected, setError, addLog, resetRealtimeState } =
+  const { connected, error, logs, setConnected, setError, addLog, setLogs, resetRealtimeState } =
     useRealtimeStore();
 
   // 탭 변경 시 파일 상태 유지를 위한 ref 추가
@@ -119,7 +119,6 @@ const LogViewer = () => {
 
   const handleTabChange = (newTab) => {
     setActiveTab(newTab);
-    // 업로드 탭으로 돌아올 때 마지막 업로드된 파일 상태 복원
     if (newTab === 'upload' && lastUploadedFileRef.current) {
       setUploadedFile(lastUploadedFileRef.current);
     }
@@ -148,30 +147,85 @@ const LogViewer = () => {
   };
 
   useEffect(() => {
-    const eventSource = new EventSource(`${process.env.REACT_APP_API_URL}/logs/stream`);
+    const ws = new WebSocket(`${process.env.REACT_APP_WS_URL}/log/ws-stream`);
 
-    eventSource.onopen = () => {
-      setConnected(true);
-      setError(null);
-    };
-
-    eventSource.onmessage = (event) => {
-      try {
-        const logData = JSON.parse(event.data);
-        if (logData.timestamp) {
-          addLog(logData);
-        }
-      } catch (error) {
-        console.error('로그 파싱 에러:', error);
+    const sendMessage = (type) => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type }));
       }
     };
 
-    eventSource.onerror = (error) => {
+    const processLog = (logData) => {
+      if (!logData) return null;
+
+      try {
+        let formattedTimestamp;
+        if (Array.isArray(logData.timestamp)) {
+          const [year, month, day, hour, minute, second] = logData.timestamp;
+          formattedTimestamp = new Date(year, month - 1, day, hour, minute, second);
+        } else if (typeof logData.timestamp === 'string') {
+          formattedTimestamp = new Date(logData.timestamp);
+        } else {
+          formattedTimestamp = new Date();
+        }
+
+        const uniqueId = `${formattedTimestamp.getTime()}-${Math.random().toString(36).substr(2, 9)}`;
+
+        return {
+          ...logData,
+          timestamp: formattedTimestamp,
+          id: uniqueId,
+          serviceName: logData.serviceName || 'Unknown',
+          level: logData.level || 'INFO',
+          message: logData.message || 'No message',
+        };
+      } catch (error) {
+        console.error('로그 처리 중 오류 발생:', error);
+        return null;
+      }
+    };
+
+    ws.onopen = () => {
+      console.log('WebSocket 연결 성공!');
+      setConnected(true);
+      setError(null);
+      sendMessage('sendInitialLogs');
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (Array.isArray(data)) {
+          const formattedLogs = data.map(processLog).filter((log) => log !== null);
+          setLogs(formattedLogs);
+        } else {
+          const formattedLog = processLog(data);
+          if (formattedLog) {
+            addLog(formattedLog);
+          }
+        }
+      } catch (error) {
+        console.error('로그 파싱 에러:', error);
+        console.error('원본 데이터:', event.data);
+        setError('로그 데이터 처리 중 오류가 발생했습니다.');
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error('WebSocket 에러 발생:', error);
+      setConnected(false);
+      setError('WebSocket 연결 중 오류가 발생했습니다.');
+    };
+
+    ws.onclose = (event) => {
       setConnected(false);
     };
 
     return () => {
-      eventSource.close();
+      console.log('컴포넌트 언마운트, WebSocket 정리...');
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      }
       resetRealtimeState();
     };
   }, []);

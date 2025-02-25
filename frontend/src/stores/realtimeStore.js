@@ -19,7 +19,7 @@ const useRealtimeStore = create((set) => ({
   setLogs: (logs) => set({ logs }),
   addLog: (log) =>
     set((state) => ({
-      logs: [...state.logs.slice(-19), log], // 최대 20개 유지
+      logs: [log, ...state.logs.slice(0, 19)],
     })),
   setSelectedLevels: (levels) => set({ selectedLevels: levels }),
   setFilteredLogs: (logs) => set({ filteredLogs: logs }),
