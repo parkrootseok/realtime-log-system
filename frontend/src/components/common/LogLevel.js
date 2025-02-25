@@ -11,7 +11,7 @@ export const LogLevel = styled.span`
   transition: all 0.2s ease;
 
   ${(props) => {
-    const style = LOG_LEVEL_STYLES[props.level] || LOG_LEVEL_STYLES.DEFAULT;
+    const style = LOG_LEVEL_STYLES[props.$level] || LOG_LEVEL_STYLES.DEFAULT;
     return `
       background: ${style.background};
       color: ${style.color};

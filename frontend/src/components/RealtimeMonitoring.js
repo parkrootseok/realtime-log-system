@@ -58,24 +58,36 @@ const LogTable = React.memo(
         </TableHeaderRow>
       </TableHeader>
       <TableBody>
-        {logs.map((log) => (
-          <TableRow key={`${log.timestamp}-${log.message}`}>
-            <TableCell>{new Date(log.timestamp).toLocaleString()}</TableCell>
-            <TableCell>
-              <LogLevel level={log.level}>{log.level}</LogLevel>
-            </TableCell>
-            <TableCell>{log.serviceName}</TableCell>
-            <TableCell>{log.message}</TableCell>
-          </TableRow>
-        ))}
+        {logs.map((log) => {
+          const timestamp =
+            typeof log.timestamp === 'string' ? new Date(log.timestamp) : log.timestamp;
+
+          return (
+            <TableRow key={`${timestamp.getTime()}-${log.serviceName}-${log.message}`}>
+              <TableCell>{timestamp.toLocaleString()}</TableCell>
+              <TableCell>
+                <LogLevel $level={log.level}>{log.level}</LogLevel>
+              </TableCell>
+              <TableCell>{log.serviceName}</TableCell>
+              <TableCell>{log.message}</TableCell>
+            </TableRow>
+          );
+        })}
       </TableBody>
     </TableContainer>
   ),
   (prevProps, nextProps) => {
+    const getLastTimestamp = (logs) => {
+      if (!logs || logs.length === 0) return null;
+      const lastLog = logs[logs.length - 1];
+      return typeof lastLog.timestamp === 'string'
+        ? new Date(lastLog.timestamp).getTime()
+        : lastLog.timestamp.getTime();
+    };
+
     return (
       prevProps.logs.length === nextProps.logs.length &&
-      prevProps.logs[prevProps.logs.length - 1]?.timestamp ===
-        nextProps.logs[nextProps.logs.length - 1]?.timestamp
+      getLastTimestamp(prevProps.logs) === getLastTimestamp(nextProps.logs)
     );
   }
 );
@@ -103,12 +115,7 @@ const RealtimeMonitoring = ({ logs }) => {
     setFilterError(null);
 
     try {
-      console.log('로그 필터링 요청 파라미터:', {
-        levels: selectedLevels,
-      });
-
       const response = await logService.getErrorLogs(undefined, selectedLevels);
-      console.log('로그 필터링 응답:', response);
 
       if (!response?.data?.data?.logs) {
         console.error('응답 데이터 구조 확인:', response);
@@ -147,7 +154,6 @@ const RealtimeMonitoring = ({ logs }) => {
 
   useEffect(() => {
     if (activeTab === 1) {
-      console.log('필터링 탭 활성화, 선택된 레벨:', selectedLevels);
       fetchFilteredLogs();
     }
   }, [activeTab, selectedLevels]);

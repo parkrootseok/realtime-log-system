@@ -52,16 +52,21 @@ const LogTable = ({ logs }) => (
     </TableHeader>
     {logs.length > 0 && (
       <TableBody>
-        {logs.map((log, index) => (
-          <TableRow key={`${log.timestamp}-${log.message}-${index}`}>
-            <TableCell>{new Date(log.timestamp).toLocaleString()}</TableCell>
-            <TableCell>
-              <LogLevel level={log.level}>{log.level}</LogLevel>
-            </TableCell>
-            <TableCell>{log.serviceName}</TableCell>
-            <TableCell>{log.message}</TableCell>
-          </TableRow>
-        ))}
+        {logs.map((log, index) => {
+          const timestamp =
+            typeof log.timestamp === 'string' ? new Date(log.timestamp) : log.timestamp;
+
+          return (
+            <TableRow key={`${timestamp.getTime()}-${log.message}-${index}`}>
+              <TableCell>{timestamp.toLocaleString()}</TableCell>
+              <TableCell>
+                <LogLevel $level={log.level}>{log.level}</LogLevel>
+              </TableCell>
+              <TableCell>{log.serviceName}</TableCell>
+              <TableCell>{log.message}</TableCell>
+            </TableRow>
+          );
+        })}
       </TableBody>
     )}
   </TableContainer>
