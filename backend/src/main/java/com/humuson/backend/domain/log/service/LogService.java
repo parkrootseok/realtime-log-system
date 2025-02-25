@@ -4,6 +4,7 @@ import com.humuson.backend.domain.log.model.entity.Level;
 import com.humuson.backend.domain.log.model.entity.LogEntity;
 import java.io.IOException;
 import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import com.humuson.backend.infrastructure.log.repository.LogRepository;
@@ -19,13 +20,10 @@ public class LogService {
         return logRepository.readLogs(fileName);
     }
 
-    public long countErrorLog(List<LogEntity> logs) {
-        return logs.stream().filter(LogEntity::isError).count();
-    }
-
-    public List<LogEntity> filteringLogs(List<LogEntity> logs, List<Level> levels) {
-        return logs.stream()
-                .filter(log -> levels.contains(log.getLevel()))
+    public List<LogEntity> readLastNLogs(String fileName, int limit) throws IOException {
+        return logRepository.readLastNLogs(fileName, limit)
+                .stream()
+                .sorted((log1, log2) -> log2.getTimestamp().compareTo(log1.getTimestamp()))
                 .toList();
     }
 
@@ -39,6 +37,17 @@ public class LogService {
     private boolean isValidLogFile(MultipartFile file) {
         String fileName = file.getOriginalFilename();
         return fileName != null && (fileName.endsWith(".log") || fileName.endsWith(".txt"));
+    }
+
+    public long countErrorLog(List<LogEntity> logs) {
+        return logs.stream().filter(LogEntity::isError).count();
+    }
+
+    public List<LogEntity> filteringLogs(List<LogEntity> logs, List<Level> levels) {
+        return logs.stream()
+                .filter(log -> levels.contains(log.getLevel()))
+                .sorted((log1, log2) -> log2.getTimestamp().compareTo(log1.getTimestamp()))
+                .toList();
     }
 
 }

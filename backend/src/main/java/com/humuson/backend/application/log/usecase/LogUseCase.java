@@ -14,12 +14,7 @@ import reactor.core.publisher.Flux;
 public class LogUseCase {
 
     private final AnalysisService analysisService;
-    private final StreamingService streamingService;
     private final UploadService uploadService;
-
-    public Flux<LogEntity> streamLogs() {
-        return streamingService.streamLogs();
-    }
 
     public LogAnalysisResponse analyzeLogs(String fileName) throws IOException {
         return analysisService.analyzeLogs(fileName);

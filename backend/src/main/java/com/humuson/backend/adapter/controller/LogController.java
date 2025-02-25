@@ -19,11 +19,6 @@ public class LogController {
 
     private final LogUseCase logUseCase;
 
-    @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<LogEntity> streamLogs() {
-        return logUseCase.streamLogs();
-    }
-
     @GetMapping("/analyze")
     public Result<LogAnalysisResponse> getLogStats(
             @RequestParam(required = false) String fileName
