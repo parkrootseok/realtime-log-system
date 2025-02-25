@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { Box, Typography } from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import { Box, Typography, Tabs, Tab } from '@mui/material';
 import styled from 'styled-components';
 import { logService } from '../services/api';
 import {
@@ -73,6 +73,7 @@ const LogTable = ({ logs }) => (
 );
 
 const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
+  const [activeTab, setActiveTab] = useState(0);
   const {
     processedFile,
     fileName,
@@ -191,19 +192,35 @@ const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
         </ErrorBox>
       )}
 
-      <StatsAndFilterWrapper>
-        <UploadLogStatus totalCount={stats?.totalCount || 0} errorCount={stats?.errorCount || 0} />
-        <FilterWrapper>
-          <LogLevelFilter
-            selectedLevels={selectedLevels}
-            onToggle={handleTagToggle}
-            isLoading={filterLoading}
-          />
-        </FilterWrapper>
-      </StatsAndFilterWrapper>
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', marginBottom: '16px' }}>
+        <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)}>
+          <Tab label="전체 로그 조회" />
+          <Tab label="로그 분석" />
+        </Tabs>
+      </Box>
 
-      {filterError && <ErrorBox>{filterError}</ErrorBox>}
-      <LogTable logs={filteredLogs} />
+      {activeTab === 0 && (
+        <>
+          <StatsAndFilterWrapper>
+            <UploadLogStatus
+              totalCount={stats?.totalCount || 0}
+              errorCount={stats?.errorCount || 0}
+            />
+            <FilterWrapper>
+              <LogLevelFilter
+                selectedLevels={selectedLevels}
+                onToggle={handleTagToggle}
+                isLoading={filterLoading}
+              />
+            </FilterWrapper>
+          </StatsAndFilterWrapper>
+
+          {filterError && <ErrorBox>{filterError}</ErrorBox>}
+          <LogTable logs={filteredLogs} />
+        </>
+      )}
+
+      {activeTab === 1 && <div>{/* 로그 분석 내용은 추후 구현 */}</div>}
     </MonitoringContainer>
   );
 };
