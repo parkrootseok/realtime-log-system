@@ -1,4 +1,4 @@
-package com.humuson.backend.domain.log.model.response;
+package com.humuson.backend.domain.log.model.dto.response;
 
 import lombok.AccessLevel;
 import lombok.Builder;

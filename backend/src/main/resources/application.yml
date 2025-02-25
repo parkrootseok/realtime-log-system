@@ -4,10 +4,3 @@ server:
 spring:
   application:
     name: humuson
-
-  docker:
-    compose:
-      lifecycle-management: start_only
-      enabled: true
-      stop:
-        command: down
