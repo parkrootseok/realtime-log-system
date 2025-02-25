@@ -1,8 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { logService } from '../services/api';
 import RealtimeMonitoring from './RealtimeMonitoring';
-import UploadMonitoring, { fileStateStore } from './UploadMonitoring';
+import UploadMonitoring from './UploadMonitoring';
+import useUIStore from '../stores/uiStore';
+import useUploadStore from '../stores/uploadStore';
+import useRealtimeStore from '../stores/realtimeStore';
 import { parseLogString } from '../utils/logParser';
 
 const LogContainer = styled.div`
@@ -99,13 +102,17 @@ const ErrorMessage = styled.div`
 `;
 
 const LogViewer = () => {
-  const [activeTab, setActiveTab] = useState('realtime');
-  const [connected, setConnected] = useState(false);
-  const [error, setError] = useState(null);
-  const [logs, setLogs] = useState([]);
-  const [uploadedFile, setUploadedFile] = useState(null);
-  const [uploadSuccess, setUploadSuccess] = useState(false);
-  const [uploadError, setUploadError] = useState(false);
+  const { activeTab, setActiveTab } = useUIStore();
+  const {
+    uploadedFile,
+    uploadSuccess,
+    uploadError,
+    setUploadedFile,
+    setUploadSuccess,
+    setUploadError,
+  } = useUploadStore();
+  const { connected, error, logs, setConnected, setError, addLog, resetRealtimeState } =
+    useRealtimeStore();
 
   // 탭 변경 시 파일 상태 유지를 위한 ref 추가
   const lastUploadedFileRef = useRef(null);
@@ -119,45 +126,25 @@ const LogViewer = () => {
   };
 
   const handleUploadStatusChange = ({ success, error }) => {
-    setUploadSuccess(success);
-    setUploadError(error);
-    // 성공적으로 업로드된 파일 저장
     if (success) {
+      setUploadSuccess(true);
       lastUploadedFileRef.current = uploadedFile;
+    } else {
+      setUploadError(error || '업로드에 실패했습니다.');
     }
   };
 
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
     if (file) {
-      // 새로운 파일이 업로드되면 모든 상태 초기화
       lastUploadedFileRef.current = null;
-      // fileStateStore 초기화
-      fileStateStore.processedFile = null;
-      fileStateStore.logs = [];
-      fileStateStore.stats = { totalCount: 0, errorCount: 0 };
-      fileStateStore.fileName = null;
-      fileStateStore.selectedLevels = ['ERROR', 'WARN', 'INFO'];
-
       setUploadedFile(file);
-      setUploadSuccess(false);
-      setUploadError(false);
     }
   };
 
   const handleOtherFileUpload = () => {
-    // "다른 파일 업로드" 버튼 클릭 시에도 모든 상태 초기화
     lastUploadedFileRef.current = null;
-    // fileStateStore 초기화
-    fileStateStore.processedFile = null;
-    fileStateStore.logs = [];
-    fileStateStore.stats = { totalCount: 0, errorCount: 0 };
-    fileStateStore.fileName = null;
-    fileStateStore.selectedLevels = ['ERROR', 'WARN', 'INFO'];
-
     setUploadedFile(null);
-    setUploadSuccess(false);
-    setUploadError(false);
   };
 
   useEffect(() => {
@@ -170,25 +157,23 @@ const LogViewer = () => {
 
     eventSource.onmessage = (event) => {
       try {
-        const parsedLog = parseLogString(event.data);
-
-        if (parsedLog.timestamp) {
-          setLogs((prevLogs) => {
-            const newLogs = [...prevLogs, parsedLog];
-            return newLogs.slice(-20);
-          });
+        const logData = JSON.parse(event.data);
+        if (logData.timestamp) {
+          addLog(logData);
         }
       } catch (error) {
         console.error('로그 파싱 에러:', error);
       }
     };
 
-    eventSource.onerror = () => {
+    eventSource.onerror = (error) => {
       setConnected(false);
-      setError('서버 연결이 끊어졌습니다. 재연결을 시도합니다...');
     };
 
-    return () => eventSource.close();
+    return () => {
+      eventSource.close();
+      resetRealtimeState();
+    };
   }, []);
 
   return (
