@@ -8,6 +8,7 @@ import org.springframework.web.multipart.MultipartFile;
 public interface LogRepository {
 
     List<LogEntity> readLogs(String fileName) throws IOException;
+    List<LogEntity> readLastNLogs(String fileName, int limit) throws IOException;
     String saveLog(MultipartFile file) throws IOException;
 
 }

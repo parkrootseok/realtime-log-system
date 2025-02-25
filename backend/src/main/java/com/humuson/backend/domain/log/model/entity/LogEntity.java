@@ -1,5 +1,6 @@
 package com.humuson.backend.domain.log.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.regex.Matcher;
@@ -18,6 +19,7 @@ public class LogEntity {
             "^(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2})\\s+(\\w+)\\s+\\[([^\\]]+)\\]\\s+-\\s+\\[([^\\]]+)\\]\\s+-\\s+(.+)$"
     );
 
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime timestamp;
     private Level level;
     private String className;
