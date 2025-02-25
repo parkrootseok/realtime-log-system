@@ -13,6 +13,7 @@ import {
 import { LogLevel } from './common/LogLevel';
 import UploadLogStatus from './UploadLogStatus';
 import LogLevelFilter from './common/LogLevelFilter';
+import LogAnalysis from './LogAnalysis';
 import useUploadStore from '../stores/uploadStore';
 
 const MonitoringContainer = styled.div`
@@ -93,6 +94,8 @@ const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
     setFilterLoading,
   } = useUploadStore();
 
+  const [allLogs, setAllLogs] = useState([]);
+
   // 파일 업로드 처리를 위한 useEffect
   useEffect(() => {
     const handleFileUpload = async () => {
@@ -170,6 +173,25 @@ const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
     fetchFilteredLogs();
   }, [fileName, selectedLevels]); // fileName과 selectedLevels만 의존성으로 사용
 
+  // 모든 로그 데이터를 가져오는 useEffect 추가
+  useEffect(() => {
+    const fetchAllLogs = async () => {
+      if (!fileName || !uploadSuccess) return;
+
+      try {
+        // 모든 로그 레벨을 포함하여 요청
+        const response = await logService.getErrorLogs(fileName, ['INFO', 'WARN', 'ERROR']);
+        if (response?.data?.data?.logs) {
+          setAllLogs(response.data.data.logs);
+        }
+      } catch (err) {
+        console.error('모든 로그 조회 실패:', err);
+      }
+    };
+
+    fetchAllLogs();
+  }, [fileName, uploadSuccess]);
+
   const handleTagToggle = (level) => {
     if (filterLoading || !fileName) return;
 
@@ -194,12 +216,14 @@ const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
 
       <Box sx={{ borderBottom: 1, borderColor: 'divider', marginBottom: '16px' }}>
         <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)}>
-          <Tab label="전체 로그 조회" />
           <Tab label="로그 분석" />
+          <Tab label="전체 로그 조회" />
         </Tabs>
       </Box>
 
-      {activeTab === 0 && (
+      {activeTab === 0 && <LogAnalysis logs={allLogs} />}
+
+      {activeTab === 1 && (
         <>
           <StatsAndFilterWrapper>
             <UploadLogStatus
@@ -219,8 +243,6 @@ const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
           <LogTable logs={filteredLogs} />
         </>
       )}
-
-      {activeTab === 1 && <div>{/* 로그 분석 내용은 추후 구현 */}</div>}
     </MonitoringContainer>
   );
 };
