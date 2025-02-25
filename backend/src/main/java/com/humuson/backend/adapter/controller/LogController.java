@@ -5,6 +5,7 @@ import com.humuson.backend.domain.log.model.dto.response.LogAnalysisResponse;
 import com.humuson.backend.domain.log.model.dto.response.ErrorLogResponse;
 import com.humuson.backend.domain.log.model.entity.LogEntity;
 import com.humuson.backend.global.model.dto.Result;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -20,10 +21,11 @@ public class LogController {
     private final LogUseCase logUseCase;
 
     @GetMapping("/analyze")
-    public Result<LogAnalysisResponse> getLogStats(
-            @RequestParam(required = false) String fileName
+    public Result<LogAnalysisResponse> analyzeLogs(
+            @RequestParam(required = false) String fileName,
+            @RequestParam(required = false) String levels
     ) throws IOException {
-        return Result.of(logUseCase.analyzeLogs(fileName));
+        return Result.of(logUseCase.analyzeLogs(fileName, levels));
     }
 
     @GetMapping("/errors")

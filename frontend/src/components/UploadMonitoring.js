@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { Box, Typography } from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import { Box, Typography, Tabs, Tab } from '@mui/material';
 import styled from 'styled-components';
 import { logService } from '../services/api';
 import {
@@ -13,6 +13,7 @@ import {
 import { LogLevel } from './common/LogLevel';
 import UploadLogStatus from './UploadLogStatus';
 import LogLevelFilter from './common/LogLevelFilter';
+import LogAnalysis from './LogAnalysis';
 import useUploadStore from '../stores/uploadStore';
 
 const MonitoringContainer = styled.div`
@@ -73,6 +74,7 @@ const LogTable = ({ logs }) => (
 );
 
 const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
+  const [activeTab, setActiveTab] = useState(0);
   const {
     processedFile,
     fileName,
@@ -91,6 +93,8 @@ const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
     setSelectedLevels,
     setFilterLoading,
   } = useUploadStore();
+
+  const [allLogs, setAllLogs] = useState([]);
 
   // 파일 업로드 처리를 위한 useEffect
   useEffect(() => {
@@ -114,15 +118,17 @@ const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
         const newFileName = uploadResponse.data.data;
 
         // 로그 분석
-        const analysisResponse = await logService.analyzeLogs(newFileName);
-        if (!analysisResponse || typeof analysisResponse.totalLines === 'undefined') {
-          throw new Error('로그 분석 응답이 올바르지 않습니다.');
-        }
+        const analysisResponse = await logService.analyzeLogs(newFileName, 'ERROR,WARN,INFO');
+        console.log(analysisResponse);
 
         const newStats = {
           totalCount: analysisResponse.totalLines,
+          infoCount: analysisResponse.infoCount,
           errorCount: analysisResponse.errorCount,
+          warnCount: analysisResponse.warnCount,
         };
+
+        console.log('newStats', newStats);
 
         // 로그 조회
         const logsResponse = await logService.getErrorLogs(newFileName, selectedLevels);
@@ -169,6 +175,24 @@ const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
     fetchFilteredLogs();
   }, [fileName, selectedLevels]); // fileName과 selectedLevels만 의존성으로 사용
 
+  // 모든 로그 데이터를 가져오는 useEffect 추가
+  useEffect(() => {
+    const fetchAllLogs = async () => {
+      if (!fileName || !uploadSuccess) return;
+
+      try {
+        const response = await logService.getErrorLogs(fileName, ['INFO', 'WARN', 'ERROR']);
+        if (response?.data?.data?.logs) {
+          setAllLogs(response.data.data.logs);
+        }
+      } catch (err) {
+        console.error('모든 로그 조회 실패:', err);
+      }
+    };
+
+    fetchAllLogs();
+  }, [fileName, uploadSuccess]);
+
   const handleTagToggle = (level) => {
     if (filterLoading || !fileName) return;
 
@@ -191,19 +215,35 @@ const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
         </ErrorBox>
       )}
 
-      <StatsAndFilterWrapper>
-        <UploadLogStatus totalCount={stats?.totalCount || 0} errorCount={stats?.errorCount || 0} />
-        <FilterWrapper>
-          <LogLevelFilter
-            selectedLevels={selectedLevels}
-            onToggle={handleTagToggle}
-            isLoading={filterLoading}
-          />
-        </FilterWrapper>
-      </StatsAndFilterWrapper>
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', marginBottom: '16px' }}>
+        <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)}>
+          <Tab label="로그 분석" />
+          <Tab label="전체 로그 조회" />
+        </Tabs>
+      </Box>
 
-      {filterError && <ErrorBox>{filterError}</ErrorBox>}
-      <LogTable logs={filteredLogs} />
+      {activeTab === 0 && <LogAnalysis logs={allLogs} />}
+
+      {activeTab === 1 && (
+        <>
+          <StatsAndFilterWrapper>
+            <UploadLogStatus
+              totalCount={stats?.totalCount || 0}
+              errorCount={stats?.errorCount || 0}
+            />
+            <FilterWrapper>
+              <LogLevelFilter
+                selectedLevels={selectedLevels}
+                onToggle={handleTagToggle}
+                isLoading={filterLoading}
+              />
+            </FilterWrapper>
+          </StatsAndFilterWrapper>
+
+          {filterError && <ErrorBox>{filterError}</ErrorBox>}
+          <LogTable logs={filteredLogs} />
+        </>
+      )}
     </MonitoringContainer>
   );
 };

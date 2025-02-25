@@ -4,6 +4,7 @@ import com.humuson.backend.domain.log.model.entity.Level;
 import com.humuson.backend.domain.log.model.entity.LogEntity;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -39,8 +40,10 @@ public class LogService {
         return fileName != null && (fileName.endsWith(".log") || fileName.endsWith(".txt"));
     }
 
-    public long countErrorLog(List<LogEntity> logs) {
-        return logs.stream().filter(LogEntity::isError).count();
+    public Map<Level, Long> countLogs(List<LogEntity> logs, List<Level> logLevels) {
+        return logs.stream()
+                .filter(log -> logLevels.contains(log.getLevel()))
+                .collect(Collectors.groupingBy(LogEntity::getLevel, Collectors.counting()));
     }
 
     public List<LogEntity> filteringLogs(List<LogEntity> logs, List<Level> levels) {

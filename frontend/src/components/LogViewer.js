@@ -110,6 +110,7 @@ const LogViewer = () => {
     setUploadedFile,
     setUploadSuccess,
     setUploadError,
+    resetStats,
   } = useUploadStore();
   const { connected, error, logs, setConnected, setError, addLog, setLogs, resetRealtimeState } =
     useRealtimeStore();
@@ -143,6 +144,10 @@ const LogViewer = () => {
     setUploadedFile(null);
     setUploadSuccess(false);
     setUploadError(null);
+    
+    // uploadStore의 상태 초기화
+    resetStats();
+    setUploadedFile(null); // uploadStore의 uploadedFile 초기화
   };
 
   useEffect(() => {

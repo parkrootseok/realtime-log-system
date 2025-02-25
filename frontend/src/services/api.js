@@ -80,17 +80,24 @@ class LogService {
   /**
    * 로그를 분석합니다.
    * @param {string} [fileName] - 분석할 로그 파일명 (선택)
+   * @param {string} [levels] - 분석할 로그 레벨 (선택)
    * @returns {Promise<{
    *   totalLines: number,
    *   errorCount: number
    * }>} 분석 결과
    */
-  async analyzeLogs(fileName = '') {
-    const params = fileName ? { fileName } : {};
+  async analyzeLogs(fileName = '', levels = '') {
+    const params = {};
+    if (fileName) params.fileName = fileName;
+    if (levels) params.levels = levels;
+
     const response = await handleApiResponse(apiClient.get('/logs/analyze', { params }));
+
     return {
       totalLines: response.data.data.totalLogsCount,
+      infoCount: response.data.data.infoLogsCount,
       errorCount: response.data.data.errorLogsCount,
+      warnCount: response.data.data.warningLogsCount,
     };
   }
 
