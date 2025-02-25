@@ -34,7 +34,6 @@ dependencies {
 	 * Util 의존성
 	 * - Lombok
 	 * - Swagger
-	 * - Docker
 	 * - Validation
 	 */
 	compileOnly 'org.projectlombok:lombok'
