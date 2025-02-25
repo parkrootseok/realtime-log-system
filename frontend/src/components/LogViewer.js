@@ -119,9 +119,6 @@ const LogViewer = () => {
 
   const handleTabChange = (newTab) => {
     setActiveTab(newTab);
-    if (newTab === 'upload' && lastUploadedFileRef.current) {
-      setUploadedFile(lastUploadedFileRef.current);
-    }
   };
 
   const handleUploadStatusChange = ({ success, error }) => {
@@ -144,6 +141,8 @@ const LogViewer = () => {
   const handleOtherFileUpload = () => {
     lastUploadedFileRef.current = null;
     setUploadedFile(null);
+    setUploadSuccess(false);
+    setUploadError(null);
   };
 
   useEffect(() => {
