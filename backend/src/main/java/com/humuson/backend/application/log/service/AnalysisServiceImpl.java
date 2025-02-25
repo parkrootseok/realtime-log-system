@@ -30,6 +30,7 @@ public class AnalysisServiceImpl implements AnalysisService {
 
         return LogAnalysisResponse.of(
                 logs.size(),
+                logCounts.getOrDefault(Level.INFO, 0L),
                 logCounts.getOrDefault(Level.ERROR, 0L),
                 logCounts.getOrDefault(Level.WARN, 0L)
         );
