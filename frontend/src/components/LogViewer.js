@@ -1,8 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { logService } from '../services/api';
 import RealtimeMonitoring from './RealtimeMonitoring';
-import UploadMonitoring, { fileStateStore } from './UploadMonitoring';
+import UploadMonitoring from './UploadMonitoring';
+import useUIStore from '../stores/uiStore';
+import useUploadStore from '../stores/uploadStore';
+import useRealtimeStore from '../stores/realtimeStore';
 import { parseLogString } from '../utils/logParser';
 
 const LogContainer = styled.div`
@@ -99,13 +102,17 @@ const ErrorMessage = styled.div`
 `;
 
 const LogViewer = () => {
-  const [activeTab, setActiveTab] = useState('realtime');
-  const [connected, setConnected] = useState(false);
-  const [error, setError] = useState(null);
-  const [logs, setLogs] = useState([]);
-  const [uploadedFile, setUploadedFile] = useState(null);
-  const [uploadSuccess, setUploadSuccess] = useState(false);
-  const [uploadError, setUploadError] = useState(false);
+  const { activeTab, setActiveTab } = useUIStore();
+  const {
+    uploadedFile,
+    uploadSuccess,
+    uploadError,
+    setUploadedFile,
+    setUploadSuccess,
+    setUploadError,
+  } = useUploadStore();
+  const { connected, error, logs, setConnected, setError, addLog, resetRealtimeState } =
+    useRealtimeStore();
 
   // 탭 변경 시 파일 상태 유지를 위한 ref 추가
   const lastUploadedFileRef = useRef(null);
@@ -119,84 +126,53 @@ const LogViewer = () => {
   };
 
   const handleUploadStatusChange = ({ success, error }) => {
-    setUploadSuccess(success);
-    setUploadError(error);
-    // 성공적으로 업로드된 파일 저장
     if (success) {
+      setUploadSuccess(true);
       lastUploadedFileRef.current = uploadedFile;
+    } else {
+      setUploadError(error || '업로드에 실패했습니다.');
     }
   };
 
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
     if (file) {
-      // 새로운 파일이 업로드되면 모든 상태 초기화
       lastUploadedFileRef.current = null;
-      // fileStateStore 초기화
-      fileStateStore.processedFile = null;
-      fileStateStore.logs = [];
-      fileStateStore.stats = { totalCount: 0, errorCount: 0 };
-      fileStateStore.fileName = null;
-      fileStateStore.selectedLevels = ['ERROR', 'WARN', 'INFO'];
-
       setUploadedFile(file);
-      setUploadSuccess(false);
-      setUploadError(false);
     }
   };
 
   const handleOtherFileUpload = () => {
-    // "다른 파일 업로드" 버튼 클릭 시에도 모든 상태 초기화
     lastUploadedFileRef.current = null;
-    // fileStateStore 초기화
-    fileStateStore.processedFile = null;
-    fileStateStore.logs = [];
-    fileStateStore.stats = { totalCount: 0, errorCount: 0 };
-    fileStateStore.fileName = null;
-    fileStateStore.selectedLevels = ['ERROR', 'WARN', 'INFO'];
-
     setUploadedFile(null);
-    setUploadSuccess(false);
-    setUploadError(false);
   };
 
   useEffect(() => {
-    console.log('SSE 연결 시도:', `${process.env.REACT_APP_API_URL}/logs/stream`);
     const eventSource = new EventSource(`${process.env.REACT_APP_API_URL}/logs/stream`);
 
     eventSource.onopen = () => {
-      console.log('SSE 연결 성공');
       setConnected(true);
       setError(null);
     };
 
     eventSource.onmessage = (event) => {
-      console.log('SSE 메시지 수신:', event.data);
       try {
         const logData = JSON.parse(event.data);
-        console.log('파싱된 로그 데이터:', logData);
-
         if (logData.timestamp) {
-          setLogs((prevLogs) => {
-            const newLogs = [...prevLogs, logData];
-            return newLogs.slice(-20);
-          });
+          addLog(logData);
         }
       } catch (error) {
         console.error('로그 파싱 에러:', error);
-        console.error('원본 데이터:', event.data);
       }
     };
 
     eventSource.onerror = (error) => {
-      console.error('SSE 연결 에러:', error);
       setConnected(false);
-      setError('서버 연결이 끊어졌습니다. 재연결을 시도합니다...');
     };
 
     return () => {
-      console.log('SSE 연결 종료');
       eventSource.close();
+      resetRealtimeState();
     };
   }, []);
 

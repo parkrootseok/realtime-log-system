@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { Box, Tabs, Tab } from '@mui/material';
 import styled from 'styled-components';
 import { logService } from '../services/api';
@@ -13,6 +13,7 @@ import {
 import { LogLevel, FilterTag } from './common/LogLevel';
 import RealtimeLogStatus from './RealtimeLogStatus';
 import LogLevelFilter from './common/LogLevelFilter';
+import useRealtimeStore from '../stores/realtimeStore';
 
 const MonitoringContainer = styled.div`
   background: #ffffff;
@@ -82,11 +83,18 @@ const LogTable = React.memo(
 LogTable.displayName = 'LogTable';
 
 const RealtimeMonitoring = ({ logs }) => {
-  const [activeTab, setActiveTab] = useState(0);
-  const [selectedLevels, setSelectedLevels] = useState(['ERROR', 'WARN', 'INFO']);
-  const [filteredLogs, setFilteredLogs] = useState([]);
-  const [filterLoading, setFilterLoading] = useState(false);
-  const [filterError, setFilterError] = useState(null);
+  const {
+    activeTab,
+    selectedLevels,
+    filteredLogs,
+    filterLoading,
+    filterError,
+    setActiveTab,
+    setSelectedLevels,
+    setFilteredLogs,
+    setFilterLoading,
+    setFilterError,
+  } = useRealtimeStore();
 
   const fetchFilteredLogs = async () => {
     if (activeTab !== 1) return;
@@ -124,15 +132,17 @@ const RealtimeMonitoring = ({ logs }) => {
   const handleTagToggle = (level) => {
     if (filterLoading) return;
 
-    setSelectedLevels((prev) => {
-      const newLevels =
-        prev.includes(level) && prev.length === 1
-          ? prev
-          : prev.includes(level)
-            ? prev.filter((l) => l !== level)
-            : [...prev, level];
-      return newLevels;
-    });
+    const currentLevels = Array.isArray(selectedLevels)
+      ? selectedLevels
+      : ['ERROR', 'WARN', 'INFO'];
+
+    const newLevels = currentLevels.includes(level)
+      ? currentLevels.length > 1
+        ? currentLevels.filter((l) => l !== level)
+        : currentLevels
+      : [...currentLevels, level];
+
+    setSelectedLevels(newLevels);
   };
 
   useEffect(() => {
