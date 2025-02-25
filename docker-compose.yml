@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+    spring:
+        container_name: server
+        build:
+            context: ./backend
+            dockerfile: Dockerfile
+        ports:
+            - '8080:8080'
+        networks:
+            - local-bridge
+        volumes:
+            - ./backend/logs:/app/logs
+
+    frontend:
+        container_name: client
+        build:
+            context: ./frontend
+            dockerfile: Dockerfile
+        ports:
+            - '3000:3000'
+        depends_on:
+            - spring
+        networks:
+            - local-bridge
+        volumes:
+            - /app/node_modules
+
+networks:
+    local-bridge:
+        driver: bridge
