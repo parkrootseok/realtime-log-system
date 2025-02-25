@@ -18,11 +18,11 @@
     - [서버](#서버)
     - [공통](#공통)
   - [설치 및 실행 방법](#설치-및-실행-방법)
-  - [API 문서](#api-문서)
-    - [1. POST /logs/upload](#1-post-logsupload)
-    - [2. GET /logs/analyze](#2-get-logsanalyze)
-    - [3. GET /logs/errors](#3-get-logserrors)
-    - [4. GET /logs/stream](#4-get-logsstream)
+- [📌 API 문서](#-api-문서)
+  - [**1. POST /logs/upload**](#1-post-logsupload)
+  - [**2. GET /logs/analyze**](#2-get-logsanalyze)
+  - [**3. GET /logs/errors**](#3-get-logserrors)
+  - [**4. GET /logs/stream**](#4-get-logsstream)
   - [웹 UI 설명](#웹-ui-설명)
   - [AI 도구 활용](#ai-도구-활용)
     - [클라이언트](#클라이언트-1)
@@ -119,23 +119,95 @@ Spring Boot 기반 로그 분석 시스템과 React 대시보드를 구현하여
 
 > 클론, 의존성 설치, 실행 방법 등 단계별 지침을 여기에 작성하세요.
 
-## API 문서
+# 📌 API 문서
 
-### 1. POST /logs/upload
+## **1. POST /logs/upload**  
+- **설명**: 로그 파일을 업로드하는 기능  
+- **요청 형식**: `multipart/form-data`  
+- **요청 데이터**:  
+  | 필드 | 타입 | 필수 여부 | 설명 |
+  |------|------|--------|------|
+  | `file` | `multipart/form-data` | ✅ | 업로드할 로그 파일 (`.log`, `.txt` 지원) |  
+- **응답 예시** (`200 OK`):
+  ```json
+  {
+    "fileName": "d8b7e3a4-45fa-4dfb-b2a2-8f42b6899f64.log"
+  }
+  ```  
+- **에러 응답 (`400 Bad Request`)**:  
+  ```json
+  {
+    "message": "잘못된 파일 형식이거나 빈 파일입니다."
+  }
+  ```  
 
--   **설명**: 로그 파일 업로드 기능
+---
 
-### 2. GET /logs/analyze
+## **2. GET /logs/analyze**  
+- **설명**: 전체 로그 개수 및 `ERROR` 로그 개수를 분석  
+- **요청 파라미터**:  
+  | 필드 | 타입 | 필수 여부 | 기본값 | 설명 |
+  |------|------|--------|------|------|
+  | `fileName` | `string` | ❌ | `logs/app.log` | 분석할 로그 파일명 (생략 시 기본 로그 파일 사용) |
+- **응답 예시 (`200 OK`)**:  
+  ```json
+  {
+    "totalLogs": 150,
+    "errorLogs": 23
+  }
+  ```  
 
--   **설명**: 전체 로그 및 ERROR 로그 개수 분석
+---
 
-### 3. GET /logs/errors
+## **3. GET /logs/errors**  
+- **설명**: 특정 레벨(`ERROR`, `WARN`, `INFO`)의 로그 목록을 조회  
+- **요청 파라미터**:  
+  | 필드 | 타입 | 필수 여부 | 기본값 | 설명 |
+  |------|------|--------|------|------|
+  | `fileName` | `string` | ❌ | `logs/app.log` | 조회할 로그 파일명 |
+  | `levels` | `string` | ❌ | `"ERROR,WARN,INFO"` | 조회할 로그 레벨 (쉼표로 구분) |  
+- **응답 예시 (`200 OK`)**:  
+  ```json
+  [
+    {
+      "timestamp": "2025-02-25T10:39:26",
+      "level": "ERROR",
+      "className": "c.h.b.d.l.s.LogGeneratorServiceImpl",
+      "serviceName": "UserService",
+      "message": "Payment failed for order: 55275"
+    },
+    {
+      "timestamp": "2025-02-25T10:42:10",
+      "level": "WARN",
+      "className": "c.h.b.d.l.s.InventoryService",
+      "serviceName": "StockService",
+      "message": "Low stock warning for item: A2164"
+    }
+  ]
+  ```  
 
--   **설명**: ERROR, WARN 로그 필터링 조회
+---
 
-### 4. GET /logs/stream
+## **4. GET /logs/stream**  
+- **설명**: Server-Sent Events (SSE) 기반 실시간 로그 스트리밍  
+- **요청 형식**:  
+  - `Content-Type: text/event-stream`  
+  - 클라이언트가 SSE를 통해 지속적으로 데이터를 받음  
+- **응답 예시 (스트리밍 데이터)**:  
+  ```json
+  data: {
+    "timestamp": "2025-02-25T10:39:26",
+    "level": "ERROR",
+    "className": "c.h.b.d.l.s.LogGeneratorServiceImpl",
+    "serviceName": "UserService",
+    "message": "Payment failed for order: 55275"
+  }
+  ```  
+- **특징**:  
+  - 일정 시간마다 새로운 로그가 자동으로 클라이언트에 전송됨  
+  - SSE(`EventSource`)를 지원하는 브라우저에서 쉽게 활용 가능  
 
--   **설명**: WebSocket 기반 실시간 로그 스트리밍
+
 
 ## 웹 UI 설명
 
