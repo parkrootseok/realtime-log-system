@@ -81,7 +81,7 @@ const RealtimeLogStatus = () => {
 
   const fetchLogStats = async () => {
     try {
-      const stats = await logService.analyzeLogs();
+      const stats = await logService.analyzeLogs('', 'ERROR');
       setStats({
         totalLogsCount: stats.totalLines,
         errorLogsCount: stats.errorCount,

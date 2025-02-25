@@ -118,15 +118,15 @@ const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
         const newFileName = uploadResponse.data.data;
 
         // 로그 분석
-        const analysisResponse = await logService.analyzeLogs(newFileName);
-        if (!analysisResponse || typeof analysisResponse.totalLines === 'undefined') {
-          throw new Error('로그 분석 응답이 올바르지 않습니다.');
-        }
+        const analysisResponse = await logService.analyzeLogs(newFileName, 'ERROR');
+        console.log(analysisResponse);
 
         const newStats = {
           totalCount: analysisResponse.totalLines,
           errorCount: analysisResponse.errorCount,
         };
+
+        console.log('newStats', newStats);
 
         // 로그 조회
         const logsResponse = await logService.getErrorLogs(newFileName, selectedLevels);
@@ -179,7 +179,6 @@ const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
       if (!fileName || !uploadSuccess) return;
 
       try {
-        // 모든 로그 레벨을 포함하여 요청
         const response = await logService.getErrorLogs(fileName, ['INFO', 'WARN', 'ERROR']);
         if (response?.data?.data?.logs) {
           setAllLogs(response.data.data.logs);
