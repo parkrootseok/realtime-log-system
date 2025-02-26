@@ -52,6 +52,27 @@ public class FileLogRepository implements LogRepository {
         }
     }
 
+    public List<LogEntity> readLogsByTimeRange(String fileName, LocalDateTime startTime, LocalDateTime endTime) throws IOException {
+        Path logFilePath = validateAndGetLogFilePath(fileName);
+        try (Stream<String> lines = Files.lines(logFilePath)) {
+            return lines
+                    .map(LogParseUtil::parseLog)
+                    .filter(Objects::nonNull)
+                    .filter(parsedLog -> isWithinTimeRange(parsedLog.get("timestamp"), startTime, endTime))
+                    .map(LogEntity::new)
+                    .toList();
+        }
+    }
+
+    private boolean isWithinTimeRange(String timestampStr, LocalDateTime startTime, LocalDateTime endTime) {
+        try {
+            LocalDateTime logTime = LocalDateTime.parse(timestampStr, TIMESTAMP_FORMAT);
+            return (logTime.isAfter(startTime) || logTime.isEqual(startTime)) && (logTime.isBefore(endTime) || logTime.isEqual(endTime));
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     private Path validateAndGetLogFilePath(String fileName) throws IOException {
 
         Path logFilePath = (fileName != null && !fileName.isEmpty()) ? Path.of("logs", fileName) : DEFAULT_LOG_PATH;
