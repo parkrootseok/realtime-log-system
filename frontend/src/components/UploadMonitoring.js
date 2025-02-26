@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Box, Typography, Tabs, Tab } from '@mui/material';
 import styled from 'styled-components';
 import { logService } from '../services/api';
@@ -41,7 +41,7 @@ const ErrorBox = styled(Box)`
   color: #dc2626;
 `;
 
-const LogTable = ({ logs }) => (
+const LogTable = React.memo(({ logs }) => (
   <TableContainer>
     <TableHeader>
       <TableHeaderRow>
@@ -53,36 +53,33 @@ const LogTable = ({ logs }) => (
     </TableHeader>
     {logs.length > 0 && (
       <TableBody>
-        {logs.map((log, index) => {
-          const timestamp =
-            typeof log.timestamp === 'string' ? new Date(log.timestamp) : log.timestamp;
-
-          return (
-            <TableRow key={`${timestamp.getTime()}-${log.message}-${index}`}>
-              <TableCell>{timestamp.toLocaleString()}</TableCell>
-              <TableCell>
-                <LogLevel $level={log.level}>{log.level}</LogLevel>
-              </TableCell>
-              <TableCell>{log.serviceName}</TableCell>
-              <TableCell>{log.message}</TableCell>
-            </TableRow>
-          );
-        })}
+        {logs.map((log, index) => (
+          <TableRow key={`${new Date(log.timestamp).getTime()}-${log.message}-${index}`}>
+            <TableCell>{new Date(log.timestamp).toLocaleString()}</TableCell>
+            <TableCell>
+              <LogLevel $level={log.level}>{log.level}</LogLevel>
+            </TableCell>
+            <TableCell>{log.serviceName}</TableCell>
+            <TableCell>{log.message}</TableCell>
+          </TableRow>
+        ))}
       </TableBody>
     )}
   </TableContainer>
-);
+));
+
+LogTable.displayName = 'LogTable';
 
 const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
   const [activeTab, setActiveTab] = useState(0);
+  const [uploadCompleted, setUploadCompleted] = useState(false);
+
   const {
     processedFile,
     fileName,
     selectedLevels,
     filteredLogs,
     filterLoading,
-    filterError,
-    uploadSuccess,
     uploadError,
     stats,
     isUploading,
@@ -92,41 +89,28 @@ const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
     updateFilterState,
     setSelectedLevels,
     setFilterLoading,
+    setLogs,
   } = useUploadStore();
 
-  const [allLogs, setAllLogs] = useState([]);
+  // store에서 전체 로그 가져오기
+  const storeLogs = useUploadStore((state) => state.logs);
 
-  // 파일 업로드 후 자동 트리거되는 useEffect를 방지하기 위한 플래그
-  const skipEffectRun = useRef(false);
-
-  // 파일 업로드 처리를 위한 useEffect
+  // 파일 업로드 처리
   useEffect(() => {
     const handleFileUpload = async () => {
-      // uploadedFile이 없거나 이미 처리된 파일이면 처리하지 않음
-      if (!uploadedFile || (processedFile === uploadedFile && fileName)) {
+      if (!uploadedFile || (processedFile === uploadedFile && fileName) || isUploading) {
         return;
       }
 
-      // 이미 업로드 중이면 처리하지 않음
-      if (isUploading) {
-        return;
-      }
-
-      // 초기 상태 설정
       initializeUpload(uploadedFile);
-
-      // 다른 useEffect의 자동 실행을 방지
-      skipEffectRun.current = true;
 
       try {
         // 파일 업로드
         const uploadResponse = await logService.uploadLogs(uploadedFile);
-        const newFileName = uploadResponse.data.data;
+        const newFileName = uploadResponse.data.data.fileName;
 
         // 로그 분석
         const analysisResponse = await logService.analyzeLogs(newFileName, 'ERROR,WARN,INFO');
-        console.log(analysisResponse);
-
         const newStats = {
           totalCount: analysisResponse.totalLines,
           infoCount: analysisResponse.infoCount,
@@ -134,9 +118,7 @@ const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
           warnCount: analysisResponse.warnCount,
         };
 
-        console.log('newStats', newStats);
-
-        // 모든 로그를 한 번만 가져옴 (INFO, WARN, ERROR 모두)
+        // 모든 로그 가져오기
         const allLogsResponse = await logService.getErrorLogs(newFileName, [
           'INFO',
           'WARN',
@@ -147,17 +129,10 @@ const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
         }
 
         const allLogsData = allLogsResponse.data.data.logs;
+        setLogs(allLogsData);
 
-        // 모든 로그 저장
-        setAllLogs(allLogsData);
-
-        // 로그 데이터를 uploadStore에 저장
-        useUploadStore.getState().setLogs(allLogsData);
-
-        // 현재 선택된 레벨에 맞게 필터링
         const filteredLogsData = allLogsData.filter((log) => selectedLevels.includes(log.level));
 
-        // 성공 상태 업데이트
         updateUploadSuccess({
           fileName: newFileName,
           stats: newStats,
@@ -165,54 +140,33 @@ const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
         });
 
         onUploadStatusChange?.({ success: true, error: false });
-
-        // 다음 렌더링 사이클에서 플래그 해제
-        setTimeout(() => {
-          skipEffectRun.current = false;
-        }, 0);
+        setUploadCompleted(true);
       } catch (error) {
         console.error('파일 처리 실패:', error);
         updateUploadError(error.message || '파일 처리 중 오류가 발생했습니다.');
         onUploadStatusChange?.({ success: false, error: true });
-
-        // 다음 렌더링 사이클에서 플래그 해제
-        setTimeout(() => {
-          skipEffectRun.current = false;
-        }, 0);
       }
     };
 
     handleFileUpload();
-  }, [uploadedFile]); // uploadedFile만 의존성으로 사용
+  }, [uploadedFile, processedFile, fileName, isUploading]);
 
-  // 필터 변경 처리를 위한 useEffect
   useEffect(() => {
-    // 파일명이 없거나 이미 로딩 중이면 실행하지 않음
-    if (!fileName || filterLoading) {
+    if (!uploadCompleted || !fileName || !storeLogs) {
       return;
     }
 
-    // 파일 업로드 처리 중이면 실행하지 않음
-    if (skipEffectRun.current) {
-      console.log('필터 변경 useEffect 스킵');
-      return;
+    setFilterLoading(true);
+    try {
+      const filteredLogsData = storeLogs.filter((log) => selectedLevels.includes(log.level));
+      updateFilterState({ logs: filteredLogsData });
+    } catch (err) {
+      console.error('로그 필터링 실패:', err);
+      updateFilterState({ error: '로그 필터링 중 오류가 발생했습니다.' });
+    } finally {
+      setFilterLoading(false);
     }
-
-    const fetchFilteredLogs = async () => {
-      setFilterLoading(true);
-
-      try {
-        console.log('필터 변경으로 인한 API 호출');
-        const response = await logService.getErrorLogs(fileName, selectedLevels);
-        updateFilterState({ logs: response.data.data.logs });
-      } catch (err) {
-        console.error('로그 조회 실패:', err);
-        updateFilterState({ error: '로그 조회 중 오류가 발생했습니다.' });
-      }
-    };
-
-    fetchFilteredLogs();
-  }, [fileName, selectedLevels]);
+  }, [uploadCompleted, fileName, selectedLevels, storeLogs]);
 
   const handleTagToggle = (level) => {
     if (filterLoading || !fileName) return;
@@ -243,7 +197,7 @@ const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
         </Tabs>
       </Box>
 
-      {activeTab === 0 && <LogAnalysis logs={allLogs} source="upload" />}
+      {activeTab === 0 && <LogAnalysis logs={storeLogs} source="upload" />}
 
       {activeTab === 1 && (
         <>

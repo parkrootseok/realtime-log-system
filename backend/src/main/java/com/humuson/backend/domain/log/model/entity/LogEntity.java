@@ -24,7 +24,7 @@ public class LogEntity {
         this.level = Level.fromString(parsedLog.get("level"));
         this.className = parsedLog.get("className");
         this.serviceName = parsedLog.get("serviceName");
-        this.message = parsedLog.get("message");
+        this.message = parsedLog.get("fileName");
     }
 
     public boolean isInfo() {
