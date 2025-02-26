@@ -85,17 +85,14 @@ public class FileLogRepository implements LogRepository {
     }
 
     @Override
-    public String saveLog(MultipartFile file) throws IOException {
+    public String saveLog(MultipartFile file, String newFileName) throws IOException {
 
         if (!Files.exists(LOG_DIRECTORY)) {
             Files.createDirectories(LOG_DIRECTORY);
         }
 
-        String newFileName = UUID.randomUUID() + ".log";
         Path destination = LOG_DIRECTORY.resolve(newFileName);
         Files.copy(file.getInputStream(), destination);
-
-        log.info("파일 저장 완료: {}", newFileName);
         return newFileName;
 
     }
