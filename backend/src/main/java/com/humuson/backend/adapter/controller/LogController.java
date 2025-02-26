@@ -1,8 +1,9 @@
 package com.humuson.backend.adapter.controller;
 
 import com.humuson.backend.application.log.usecase.LogUseCase;
-import com.humuson.backend.domain.log.model.dto.response.LogAnalysisResponse;
-import com.humuson.backend.domain.log.model.dto.response.ErrorLogResponse;
+import com.humuson.backend.domain.log.model.dto.response.GetCountLogResponse;
+import com.humuson.backend.domain.log.model.dto.response.GetFilteredLogResponse;
+import com.humuson.backend.domain.log.model.dto.response.UploadLogResponse;
 import com.humuson.backend.global.model.dto.Result;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -17,24 +18,24 @@ public class LogController {
     private final LogUseCase logUseCase;
 
     @GetMapping("/analyze")
-    public Result<LogAnalysisResponse> getLogsCountByLevel(
+    public Result<GetCountLogResponse> analyzeLogLevels(
             @RequestParam(defaultValue = "app.log") String fileName,
             @RequestParam(required = false) String levels
     ) throws IOException {
-        return Result.of(logUseCase.getLogsCountByLevel(fileName, levels));
+        return Result.of(logUseCase.analyzeLogLevels(fileName, levels));
     }
 
     @GetMapping("/errors")
-    public Result<ErrorLogResponse> getLogsByLevel(
+    public Result<GetFilteredLogResponse> filterLogsByLevel(
             @RequestParam(defaultValue = "app.log") String fileName,
             @RequestParam(required = false) String levels
     ) throws IOException {
-        return Result.of(logUseCase.getLogsByLevel(fileName, levels));
+        return Result.of(logUseCase.filterLogsByLevel(fileName, levels));
     }
 
     @PostMapping("/upload")
-    public Result<String> uploadLog(@RequestParam("file") MultipartFile file) {
-        return Result.of(logUseCase.uploadLog(file));
+    public Result<UploadLogResponse> saveUploadedLog(@RequestParam("file") MultipartFile file) {
+        return Result.of(logUseCase.saveUploadedLog(file));
     }
 
 }

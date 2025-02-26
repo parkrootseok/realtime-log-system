@@ -1,13 +1,9 @@
 package com.humuson.backend.global.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.humuson.backend.application.log.usecase.LogUseCase;
-import com.humuson.backend.domain.log.model.dto.response.LogDistributionResponseDto;
-import com.humuson.backend.domain.log.model.entity.LogEntity;
-import com.humuson.backend.domain.log.service.LogService;
+import com.humuson.backend.domain.log.model.dto.response.GetLogDistributionResponse;
 import java.io.IOException;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -52,8 +48,8 @@ public class LogDistributionWebSocketHandler extends TextWebSocketHandler {
 
     private void sendLogDistribution(WebSocketSession session, String fileName) throws IOException {
         LocalDateTime now = LocalDateTime.now();
-        List<LogDistributionResponseDto> logGroupedByTime = logUseCase.getLogsGroupByMinute(fileName, now.minusMinutes(10), now);
-        session.sendMessage(new TextMessage(objectMapper.writeValueAsString(logGroupedByTime)));
+        GetLogDistributionResponse logDistribution = logUseCase.groupLogsByMinute(fileName, now.minusMinutes(10), now);
+        session.sendMessage(new TextMessage(objectMapper.writeValueAsString(logDistribution)));
     }
 
 }

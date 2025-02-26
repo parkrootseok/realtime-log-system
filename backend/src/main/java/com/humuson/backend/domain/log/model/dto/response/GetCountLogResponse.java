@@ -4,10 +4,10 @@ import lombok.AccessLevel;
 import lombok.Builder;
 
 @Builder(access = AccessLevel.PRIVATE)
-public record LogAnalysisResponse(long totalLogsCount, long infoLogsCount, long errorLogsCount, long warningLogsCount) {
+public record GetCountLogResponse(long totalLogsCount, long infoLogsCount, long errorLogsCount, long warningLogsCount) {
 
-    public static LogAnalysisResponse of(long totalLogsCount, long infoLogsCount, long errorLogsCount, long warningLogsCount) {
-        return LogAnalysisResponse.builder()
+    public static GetCountLogResponse of(long totalLogsCount, long infoLogsCount, long errorLogsCount, long warningLogsCount) {
+        return GetCountLogResponse.builder()
                 .totalLogsCount(totalLogsCount)
                 .infoLogsCount(infoLogsCount)
                 .errorLogsCount(errorLogsCount)

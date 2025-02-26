@@ -6,10 +6,10 @@ import lombok.AccessLevel;
 import lombok.Builder;
 
 @Builder(access = AccessLevel.PRIVATE)
-public record ErrorLogResponse(List<LogEntity> logs) {
+public record GetFilteredLogResponse(List<LogEntity> logs) {
 
-    public static ErrorLogResponse of(List<LogEntity> logs) {
-        return ErrorLogResponse.builder()
+    public static GetFilteredLogResponse of(List<LogEntity> logs) {
+        return GetFilteredLogResponse.builder()
                 .logs(logs)
                 .build();
     }

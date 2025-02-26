@@ -14,7 +14,7 @@ public enum ErrorCode {
      * - 응답 상태 코드는 서버가 클라이언트 오류를 감지해 요청 불가
      */
     FAIL_TO_VALIDATE(HttpStatus.BAD_REQUEST, "잘못된 요청입니다."),
-
+    INVALID_FILE_FORMAT(HttpStatus.BAD_REQUEST, "잘못된 파일 형식이거나 빈 파일입니다."),
     /**
      * [401 UnAuthorized]
      * - 요청된 리소스에 대한 유효한 인증 자격 증명이 없음
@@ -36,7 +36,8 @@ public enum ErrorCode {
      * [500 INTERNAL_SERVER_ERROR]
      * - 서버 오류
      */
-    LOG_PARSE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "로그 파싱 중 오류가 발생했습니다.");
+    LOG_PARSE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "로그 파싱 중 오류가 발생했습니다."),
+    FILE_UPLOAD_ERROR(HttpStatus.INTERNAL_SERVER_ERROR , "파일 업로드 중 오류가 발생했습니다.");
 
     private final HttpStatus status;
     private final String message;
