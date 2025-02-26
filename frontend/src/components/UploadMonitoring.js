@@ -151,6 +151,9 @@ const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
         // 모든 로그 저장
         setAllLogs(allLogsData);
 
+        // 로그 데이터를 uploadStore에 저장
+        useUploadStore.getState().setLogs(allLogsData);
+
         // 현재 선택된 레벨에 맞게 필터링
         const filteredLogsData = allLogsData.filter((log) => selectedLevels.includes(log.level));
 
@@ -240,7 +243,7 @@ const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
         </Tabs>
       </Box>
 
-      {activeTab === 0 && <LogAnalysis logs={allLogs} />}
+      {activeTab === 0 && <LogAnalysis logs={allLogs} source="upload" />}
 
       {activeTab === 1 && (
         <>
@@ -249,16 +252,13 @@ const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
               totalCount={stats?.totalCount || 0}
               errorCount={stats?.errorCount || 0}
             />
-            <FilterWrapper>
-              <LogLevelFilter
-                selectedLevels={selectedLevels}
-                onToggle={handleTagToggle}
-                isLoading={filterLoading}
-              />
-            </FilterWrapper>
+            <LogLevelFilter
+              selectedLevels={selectedLevels}
+              onToggle={handleTagToggle}
+              isLoading={filterLoading}
+            />
           </StatsAndFilterWrapper>
 
-          {filterError && <ErrorBox>{filterError}</ErrorBox>}
           <LogTable logs={filteredLogs} />
         </>
       )}

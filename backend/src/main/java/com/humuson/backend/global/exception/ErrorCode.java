@@ -29,13 +29,14 @@ public enum ErrorCode {
      * [404 Not Found]
      * - 존재하지 않는 자원
      */
-    NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 자원입니다.");
+    NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 자원입니다."),
 
 
     /**
      * [500 INTERNAL_SERVER_ERROR]
      * - 서버 오류
      */
+    LOG_PARSE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "로그 파싱 중 오류가 발생했습니다.");
 
     private final HttpStatus status;
     private final String message;

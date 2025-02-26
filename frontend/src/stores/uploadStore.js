@@ -13,6 +13,7 @@ const initialState = {
   filteredLogs: [],
   filterLoading: false,
   filterError: null,
+  timeUnit: 'day',
 };
 
 const useUploadStore = create((set) => ({
@@ -90,6 +91,16 @@ const useUploadStore = create((set) => ({
 
   // stats 초기화 함수 추가
   resetStats: () => set({ stats: null }), // 또는 초기 stats 객체로 설정
+
+  // 로그 데이터 저장
+  setLogs: (logs) => set({ logs }),
+
+  // 시간 단위 저장
+  setTimeUnit: (timeUnit) => set({ timeUnit }),
+
+  setStats: (stats) => set({ stats }),
+
+  reset: () => set({ uploadedFile: null, stats: null, logs: [] }),
 }));
 
 export default useUploadStore;

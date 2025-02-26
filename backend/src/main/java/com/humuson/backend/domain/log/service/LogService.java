@@ -1,8 +1,12 @@
 package com.humuson.backend.domain.log.service;
 
+import static com.humuson.backend.global.constant.Format.MINUTE_FORMAT;
+
+import com.humuson.backend.domain.log.model.dto.response.LogDistributionResponseDto;
 import com.humuson.backend.domain.log.model.entity.Level;
 import com.humuson.backend.domain.log.model.entity.LogEntity;
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -28,16 +32,8 @@ public class LogService {
                 .toList();
     }
 
-    public String saveLog(MultipartFile file) throws IOException {
-        if (file.isEmpty() || !isValidLogFile(file)) {
-            throw new IOException("잘못된 파일 형식이거나 빈 파일입니다.");
-        }
-        return logRepository.saveLog(file);
-    }
-
-    private boolean isValidLogFile(MultipartFile file) {
-        String fileName = file.getOriginalFilename();
-        return fileName != null && (fileName.endsWith(".log") || fileName.endsWith(".txt"));
+    public List<LogEntity> readLogsByTimeRange(String fileName, LocalDateTime startTime, LocalDateTime endTime) throws IOException {
+        return logRepository.readLogsByTimeRange(fileName, startTime, endTime);
     }
 
     public Map<Level, Long> countLogs(List<LogEntity> logs, List<Level> logLevels) {
@@ -51,6 +47,30 @@ public class LogService {
                 .filter(log -> levels.contains(log.getLevel()))
                 .sorted((log1, log2) -> log2.getTimestamp().compareTo(log1.getTimestamp()))
                 .toList();
+    }
+
+    public List<LogDistributionResponseDto> groupLogsByMinute(List<LogEntity> logs) {
+        Map<String, Map<Level, Long>> groupedLogs = logs.stream()
+                .collect(Collectors.groupingBy(
+                        this::extractMinute, java.util.TreeMap::new, Collectors.groupingBy(LogEntity::getLevel, Collectors.counting())
+                ));
+        return LogDistributionResponseDto.of(groupedLogs.entrySet());
+    }
+
+    private String extractMinute(LogEntity log) {
+        return log.getTimestamp().substring(0, 16);
+    }
+
+    public String saveLog(MultipartFile file) throws IOException {
+        if (file.isEmpty() || !isValidLogFile(file)) {
+            throw new IOException("잘못된 파일 형식이거나 빈 파일입니다.");
+        }
+        return logRepository.saveLog(file);
+    }
+
+    private boolean isValidLogFile(MultipartFile file) {
+        String fileName = file.getOriginalFilename();
+        return fileName != null && (fileName.endsWith(".log") || fileName.endsWith(".txt"));
     }
 
 }

@@ -1,7 +1,12 @@
 package com.humuson.backend.infrastructure.log.repository;
 
+import static com.humuson.backend.global.constant.Format.TIMESTAMP_FORMAT;
+
 import com.humuson.backend.domain.log.model.entity.LogEntity;
+import com.humuson.backend.global.util.LogParseUtil;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
@@ -24,25 +29,48 @@ public class FileLogRepository implements LogRepository {
     public List<LogEntity> readLogs(String fileName) throws IOException {
 
         Path logFilePath = validateAndGetLogFilePath(fileName);
-        return Files.lines(logFilePath)
-                .map(LogEntity::new)
-                .collect(Collectors.toList());
-
+        try (Stream<String> lines = Files.lines(logFilePath)) {
+            return lines
+                    .map(LogParseUtil::parseLog)
+                    .filter(Objects::nonNull)
+                    .map(LogEntity::new)
+                    .toList();
+        }
     }
 
     @Override
     public List<LogEntity> readLastNLogs(String fileName, int limit) throws IOException {
-
         Path logFilePath = validateAndGetLogFilePath(fileName);
         try (Stream<String> lines = Files.lines(logFilePath)) {
-
             long totalLines = Files.lines(logFilePath).count();
-            return lines.skip(Math.max(0, totalLines - limit))
+            return lines
+                    .skip(Math.max(0, totalLines - limit))
+                    .map(LogParseUtil::parseLog)
+                    .filter(Objects::nonNull)
                     .map(LogEntity::new)
-                    .collect(Collectors.toList());
-
+                    .toList();
         }
+    }
 
+    public List<LogEntity> readLogsByTimeRange(String fileName, LocalDateTime startTime, LocalDateTime endTime) throws IOException {
+        Path logFilePath = validateAndGetLogFilePath(fileName);
+        try (Stream<String> lines = Files.lines(logFilePath)) {
+            return lines
+                    .map(LogParseUtil::parseLog)
+                    .filter(Objects::nonNull)
+                    .filter(parsedLog -> isWithinTimeRange(parsedLog.get("timestamp"), startTime, endTime))
+                    .map(LogEntity::new)
+                    .toList();
+        }
+    }
+
+    private boolean isWithinTimeRange(String timestampStr, LocalDateTime startTime, LocalDateTime endTime) {
+        try {
+            LocalDateTime logTime = LocalDateTime.parse(timestampStr, TIMESTAMP_FORMAT);
+            return (logTime.isAfter(startTime) || logTime.isEqual(startTime)) && (logTime.isBefore(endTime) || logTime.isEqual(endTime));
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private Path validateAndGetLogFilePath(String fileName) throws IOException {
@@ -56,7 +84,6 @@ public class FileLogRepository implements LogRepository {
         return logFilePath;
 
     }
-
 
     @Override
     public String saveLog(MultipartFile file) throws IOException {
