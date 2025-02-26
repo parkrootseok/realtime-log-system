@@ -112,8 +112,17 @@ const LogViewer = () => {
     setUploadError,
     resetStats,
   } = useUploadStore();
-  const { connected, error, logs, setConnected, setError, addLog, setLogs, resetRealtimeState } =
-    useRealtimeStore();
+  const { 
+    connected, 
+    error, 
+    logs, 
+    setConnected, 
+    setError, 
+    addLog, 
+    setLogs, 
+    resetRealtimeState,
+    initSocket
+  } = useRealtimeStore();
 
   // 탭 변경 시 파일 상태 유지를 위한 ref 추가
   const lastUploadedFileRef = useRef(null);
@@ -151,11 +160,12 @@ const LogViewer = () => {
   };
 
   useEffect(() => {
-    const ws = new WebSocket(`${process.env.REACT_APP_WS_URL}/log/ws-stream`);
+    const wsUrl = `${process.env.REACT_APP_WS_URL}/log/ws-stream`;
+    const socket = initSocket(wsUrl);
 
     const sendMessage = (type) => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type }));
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type }));
       }
     };
 
@@ -189,14 +199,21 @@ const LogViewer = () => {
       }
     };
 
-    ws.onopen = () => {
+    // 소켓이 이미 연결되어 있는 경우 이벤트 핸들러만 등록
+    if (socket.readyState === WebSocket.OPEN) {
+      setConnected(true);
+      setError(null);
+      sendMessage('sendInitialLogs');
+    }
+
+    socket.onopen = () => {
       console.log('WebSocket 연결 성공!');
       setConnected(true);
       setError(null);
       sendMessage('sendInitialLogs');
     };
 
-    ws.onmessage = (event) => {
+    socket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
         if (Array.isArray(data)) {
@@ -215,22 +232,22 @@ const LogViewer = () => {
       }
     };
 
-    ws.onerror = (error) => {
+    socket.onerror = (error) => {
       console.error('WebSocket 에러 발생:', error);
       setConnected(false);
       setError('WebSocket 연결 중 오류가 발생했습니다.');
     };
 
-    ws.onclose = (event) => {
+    socket.onclose = (event) => {
       setConnected(false);
     };
 
+    // 컴포넌트가 언마운트될 때 소켓 연결을 종료하지 않고 이벤트 핸들러만 제거
     return () => {
-      console.log('컴포넌트 언마운트, WebSocket 정리...');
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.close();
-      }
-      resetRealtimeState();
+      // 이벤트 핸들러 제거
+      socket.onmessage = null;
+      socket.onerror = null;
+      socket.onclose = null;
     };
   }, []);
 

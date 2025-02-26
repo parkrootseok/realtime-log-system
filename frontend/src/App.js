@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import LogViewer from './components/LogViewer';
 import { createGlobalStyle } from 'styled-components';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
+import useRealtimeStore from './stores/realtimeStore';
 
 const GlobalStyle = createGlobalStyle`
   body {
@@ -20,6 +21,23 @@ const theme = createTheme({
 });
 
 function App() {
+  const { resetRealtimeState } = useRealtimeStore();
+
+  // 애플리케이션 종료 시 소켓 연결 정리
+  useEffect(() => {
+    // 브라우저 창이 닫히거나 새로고침될 때 소켓 연결 정리
+    const handleBeforeUnload = () => {
+      resetRealtimeState();
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      resetRealtimeState();
+    };
+  }, [resetRealtimeState]);
+
   return (
     <ThemeProvider theme={theme}>
       <GlobalStyle />

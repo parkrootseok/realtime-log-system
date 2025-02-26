@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { logService } from '../services/api';
 import StatusItem from './common/StatusItem';
+import useRealtimeStore from '../stores/realtimeStore';
 
 const StatusWrapper = styled.div`
   display: flex;
@@ -65,19 +66,15 @@ const RefreshIcon = () => (
 );
 
 const RealtimeLogStatus = ({ stats, lastUpdate, onStatsChange }) => {
-  const [internalStats, setInternalStats] = useState({
-    totalLogsCount: 0,
-    errorLogsCount: 0,
-    infoLogsCount: 0,
-    warnLogsCount: 0,
-  });
   const [refreshing, setRefreshing] = useState(false);
-  const [internalLastUpdate, setInternalLastUpdate] = useState(new Date());
   const [timeString, setTimeString] = useState('방금 전');
+  
+  // 전역 상태에서 로그 통계 가져오기
+  const { logStats, updateLogStats } = useRealtimeStore();
 
   // 실제로 사용할 stats와 lastUpdate 결정
-  const effectiveStats = stats || internalStats;
-  const effectiveLastUpdate = lastUpdate || internalLastUpdate;
+  const effectiveStats = stats || logStats;
+  const effectiveLastUpdate = lastUpdate || logStats.lastUpdate;
 
   const getRelativeTimeString = (date) => {
     const diff = new Date() - date;
@@ -93,13 +90,13 @@ const RealtimeLogStatus = ({ stats, lastUpdate, onStatsChange }) => {
       const statsData = await logService.analyzeLogs('', 'ERROR,WARN,INFO');
       const newStats = {
         totalLogsCount: statsData.totalLines,
-        infoLogsCount: statsData.infoCount,
-        warnLogsCount: statsData.warnCount,
-        errorLogsCount: statsData.errorCount,
+        infoCount: statsData.infoCount,
+        warnCount: statsData.warnCount,
+        errorCount: statsData.errorCount,
       };
 
-      setInternalStats(newStats);
-      setInternalLastUpdate(new Date());
+      // 전역 상태 업데이트
+      updateLogStats(newStats);
 
       if (onStatsChange) {
         onStatsChange(newStats);
@@ -140,7 +137,7 @@ const RealtimeLogStatus = ({ stats, lastUpdate, onStatsChange }) => {
       <StatusItem label="전체 로그" value={effectiveStats.totalLogsCount.toLocaleString()} />
       <StatusItem
         label="에러"
-        value={effectiveStats.errorLogsCount.toLocaleString()}
+        value={effectiveStats.errorCount.toLocaleString()}
         type="error"
       />
       <UpdateTimeWrapper>

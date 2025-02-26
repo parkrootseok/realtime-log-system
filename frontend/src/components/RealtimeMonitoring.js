@@ -100,17 +100,9 @@ const RealtimeMonitoring = ({ logs }) => {
     setFilteredLogs,
     setFilterLoading,
     setFilterError,
+    logStats,
+    updateLogStats
   } = useRealtimeStore();
-
-  // 공유할 실시간 로그 통계 상태 - 모든 탭에서 사용할 통합된 상태
-  const [realtimeStats, setRealtimeStats] = useState({
-    totalLogsCount: 0,
-    errorCount: 0,
-    infoCount: 0,
-    warnCount: 0,
-  });
-
-  const [lastUpdate, setLastUpdate] = useState(new Date());
 
   // 실시간 로그 분석 옵션
   const [realtimeOptions, setRealtimeOptions] = useState({
@@ -120,26 +112,19 @@ const RealtimeMonitoring = ({ logs }) => {
   });
 
   const handleStatsChange = (newStats) => {
-    setRealtimeStats({
-      totalLogsCount: newStats.totalLogsCount || 0,
-      errorCount: newStats.errorLogsCount || 0,
-      infoCount: newStats.infoLogsCount || 0,
-      warnCount: newStats.warnLogsCount || 0,
-    });
-    setLastUpdate(new Date());
+    updateLogStats(newStats);
   };
 
   // 실시간 로그 통계 가져오기
   const fetchRealtimeStats = async () => {
     try {
       const stats = await logService.analyzeLogs('', 'ERROR,WARN,INFO');
-      setRealtimeStats({
+      updateLogStats({
         totalLogsCount: stats.totalLines || 0,
         errorCount: stats.errorCount || 0,
         infoCount: stats.infoCount || 0,
         warnCount: stats.warnCount || 0,
       });
-      setLastUpdate(new Date());
     } catch (err) {
       console.error('실시간 로그 통계 조회 실패:', err);
     }
@@ -220,12 +205,7 @@ const RealtimeMonitoring = ({ logs }) => {
           <LogAnalysis
             logs={logs}
             source="realtime"
-            realtimeStats={{
-              totalLogsCount: realtimeStats.totalLogsCount || 0,
-              errorCount: realtimeStats.errorCount || 0,
-              infoCount: realtimeStats.infoCount || 0,
-              warnCount: realtimeStats.warnCount || 0,
-            }}
+            realtimeStats={logStats}
             realtimeOptions={realtimeOptions}
             onRealtimeAnalysisAction={(action, params) => {
               if (action === 'changeOptions' && params) {
@@ -238,13 +218,8 @@ const RealtimeMonitoring = ({ logs }) => {
         {activeTab === 1 && (
           <>
             <RealtimeLogStatus
-              stats={{
-                totalLogsCount: realtimeStats.totalLogsCount || 0,
-                errorLogsCount: realtimeStats.errorCount || 0,
-                infoLogsCount: realtimeStats.infoCount || 0,
-                warnLogsCount: realtimeStats.warnCount || 0,
-              }}
-              lastUpdate={lastUpdate}
+              stats={logStats}
+              lastUpdate={logStats.lastUpdate}
               onStatsChange={handleStatsChange}
             />
             <LogTable logs={logs} />

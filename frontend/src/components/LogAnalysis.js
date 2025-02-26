@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Box, Typography, Grid, ToggleButtonGroup, ToggleButton } from '@mui/material';
 import styled from 'styled-components';
 import { Pie, Line } from 'react-chartjs-2';
@@ -15,6 +15,7 @@ import {
   Title,
 } from 'chart.js';
 import useUploadStore from '../stores/uploadStore'; // uploadStore import
+import useRealtimeStore from '../stores/realtimeStore';
 
 ChartJS.register(
   ArcElement,
@@ -58,6 +59,7 @@ const LogAnalysis = ({ logs = [], source = 'upload', realtimeStats = null }) => 
   const [timeUnit, setTimeUnit] = useState(source === 'realtime' ? 'minute' : 'day');
   // 실시간 로그 분포 데이터 상태 추가
   const [realtimeDistribution, setRealtimeDistribution] = useState([]);
+  const { initDistributionSocket, setRealtimeDistribution: setGlobalRealtimeDistribution } = useRealtimeStore();
 
   // uploadStore에서 stats, 현재 파일 상태, 저장된 로그 데이터 가져오기
   const uploadStats = useUploadStore((state) => state.stats);
@@ -75,7 +77,12 @@ const LogAnalysis = ({ logs = [], source = 'upload', realtimeStats = null }) => 
   const logMessage = (message, data) => {
     if (process.env.NODE_ENV === 'development') {
       // eslint-disable-next-line no-console
-      console.info(message, data);
+      if (data) {
+        console.info(message, data);
+      } else {
+        // eslint-disable-next-line no-console
+        console.info(message);
+      }
     }
   };
 
@@ -202,13 +209,24 @@ const LogAnalysis = ({ logs = [], source = 'upload', realtimeStats = null }) => 
     if (source !== 'realtime') return;
     
     logMessage('시계열 데이터 수집: WebSocket 연결 시도 중...');
-    const socket = new WebSocket('ws://localhost:8080/log/ws-distribution');
+    const wsUrl = 'ws://localhost:8080/log/ws-distribution';
+    const socket = initDistributionSocket(wsUrl);
+    
+    const sendDistributionRequest = () => {
+      if (socket.readyState === WebSocket.OPEN) {
+        logMessage('시계열 데이터 수집: 데이터 요청 전송');
+        socket.send(JSON.stringify({ type: 'logDistribution' }));
+      }
+    };
+    
+    // 소켓이 이미 연결되어 있는 경우 데이터 요청만 전송
+    if (socket.readyState === WebSocket.OPEN) {
+      sendDistributionRequest();
+    }
     
     socket.onopen = () => {
       logMessage('시계열 데이터 수집: WebSocket 연결 성공');
-      const message = JSON.stringify({ type: 'logDistribution' });
-      logMessage('시계열 데이터 수집: 초기 데이터 요청 전송');
-      socket.send(message);
+      sendDistributionRequest();
     };
     
     socket.onmessage = (event) => {
@@ -223,6 +241,7 @@ const LogAnalysis = ({ logs = [], source = 'upload', realtimeStats = null }) => 
         
         if (isDistributionData) {
           setRealtimeDistribution(data);
+          setGlobalRealtimeDistribution(data);
         }
       } catch (error) {
         logMessage('시계열 데이터 수집: 데이터 파싱 오류 발생', error);
@@ -238,15 +257,16 @@ const LogAnalysis = ({ logs = [], source = 'upload', realtimeStats = null }) => 
     };
     
     const intervalId = setInterval(() => {
-      if (socket.readyState === WebSocket.OPEN) {
-        logMessage('시계열 데이터 수집: 주기적 데이터 요청 전송');
-        socket.send(JSON.stringify({ type: 'logDistribution' }));
-      }
+      sendDistributionRequest();
     }, 10 * 60 * 1000);
     
+    // 컴포넌트가 언마운트될 때 소켓 연결을 종료하지 않고 이벤트 핸들러와 인터벌만 제거
     return () => {
       clearInterval(intervalId);
-      socket.close();
+      // 이벤트 핸들러 제거
+      socket.onmessage = null;
+      socket.onerror = null;
+      socket.onclose = null;
     };
   }, [source]);
 
