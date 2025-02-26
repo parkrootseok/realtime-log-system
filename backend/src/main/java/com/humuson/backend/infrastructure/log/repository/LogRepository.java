@@ -2,6 +2,7 @@ package com.humuson.backend.infrastructure.log.repository;
 
 import com.humuson.backend.domain.log.model.entity.LogEntity;
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.web.multipart.MultipartFile;
 

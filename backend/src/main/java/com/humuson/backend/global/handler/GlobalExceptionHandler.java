@@ -1,6 +1,6 @@
 package com.humuson.backend.global.handler;
 
-import static com.humuson.backend.global.constant.StringFormat.VALIDATED_ERROR_RESULT;
+import static com.humuson.backend.global.constant.Format.VALIDATED_ERROR_RESULT_FORMAT;
 import static com.humuson.backend.global.exception.ErrorCode.FAIL_TO_VALIDATE;
 
 import com.humuson.backend.global.exception.BaseException;
@@ -49,7 +49,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         e.getAllErrors().forEach(validationResult -> {
             if (validationResult instanceof FieldError) {
                 FieldError fieldError = (FieldError) validationResult;
-                errors.add(String.format(VALIDATED_ERROR_RESULT, fieldError.getDefaultMessage(), fieldError.getRejectedValue()));
+                errors.add(String.format(VALIDATED_ERROR_RESULT_FORMAT, fieldError.getDefaultMessage(), fieldError.getRejectedValue()));
             } else {
                 errors.add(validationResult.getDefaultMessage());
             }
@@ -62,7 +62,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     protected ResponseEntity<Object> handleConstraintViolation(ConstraintViolationException e, WebRequest request) {
         List<String> errors = new ArrayList<>();
         e.getConstraintViolations().forEach(violation ->
-                errors.add(String.format(VALIDATED_ERROR_RESULT, violation.getMessage(), violation.getInvalidValue())));
+                errors.add(String.format(VALIDATED_ERROR_RESULT_FORMAT, violation.getMessage(), violation.getInvalidValue())));
         URI instance = URI.create(((ServletWebRequest) request).getRequest().getRequestURI());
         return buildResponseEntity(e, FAIL_TO_VALIDATE.getStatus(), FAIL_TO_VALIDATE.getMessage(), instance, errors);
     }
