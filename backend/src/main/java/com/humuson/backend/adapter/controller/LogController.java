@@ -22,7 +22,7 @@ public class LogController {
 
     @GetMapping("/analyze")
     public Result<LogAnalysisResponse> analyzeLogs(
-            @RequestParam(required = false) String fileName,
+            @RequestParam(defaultValue = "app.log") String fileName,
             @RequestParam(required = false) String levels
     ) throws IOException {
         return Result.of(logUseCase.analyzeLogs(fileName, levels));
@@ -30,7 +30,7 @@ public class LogController {
 
     @GetMapping("/errors")
     public Result<ErrorLogResponse> getErrorLogs(
-            @RequestParam(required = false) String fileName,
+            @RequestParam(defaultValue = "app.log") String fileName,
             @RequestParam(required = false) String levels
     ) throws IOException {
         return Result.of(logUseCase.getErrorLogs(fileName, levels));

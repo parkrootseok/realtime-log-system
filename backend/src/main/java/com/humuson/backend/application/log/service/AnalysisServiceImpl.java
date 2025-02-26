@@ -47,4 +47,5 @@ public class AnalysisServiceImpl implements AnalysisService {
     private List<Level> getLogLevels(String levels) {
         return (levels != null && !levels.isEmpty()) ? Arrays.stream(levels.split(",")).map(Level::fromString).toList() : List.of(Level.ERROR, Level.WARN, Level.INFO);
     }
+
 }
