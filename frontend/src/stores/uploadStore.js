@@ -22,11 +22,9 @@ const initialState = {
 const useUploadStore = create((set) => ({
   ...initialState,
 
-  // 액션
   setUploadedFile: (file) =>
     set({
       uploadedFile: file,
-      // 새 파일이 업로드되면 관련 상태도 초기화
       processedFile: null,
       fileName: null,
       uploadSuccess: false,
@@ -94,23 +92,18 @@ const useUploadStore = create((set) => ({
   setSelectedLevels: (levels) => set({ selectedLevels: levels }),
   setFilterLoading: (loading) => set({ filterLoading: loading }),
 
-  // 초기화
   resetUploadState: () => set(initialState),
 
-  // stats 초기화 함수 추가
-  resetStats: () => set({ stats: null }), // 또는 초기 stats 객체로 설정
+  resetStats: () => set({ stats: null }),
 
-  // 로그 데이터 저장
   setLogs: (logs) => set({ logs }),
 
-  // 시간 단위 저장
   setTimeUnit: (timeUnit) => set({ timeUnit }),
 
   setStats: (stats) => set({ stats }),
 
   reset: () => set({ uploadedFile: null, stats: null, logs: [] }),
 
-  // 페이지네이션 관련 액션 추가
   setPage: (page) => set({ page }),
   setTotalPages: (totalPages) => set({ totalPages }),
   resetPagination: () => set({ page: 0, totalPages: 0 }),

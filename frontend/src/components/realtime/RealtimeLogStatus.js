@@ -68,18 +68,14 @@ const RefreshIcon = () => (
 const RealtimeLogStatus = ({ stats, lastUpdate, onStatsChange }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [timeString, setTimeString] = useState('방금 전');
-
-  // 전역 상태에서 로그 통계 가져오기
   const { logStats, updateLogStats } = useRealtimeStore();
 
-  // 실제로 사용할 stats와 lastUpdate 결정
   const effectiveStats = stats || logStats;
   const effectiveLastUpdate = lastUpdate || logStats.lastUpdate;
 
   const getRelativeTimeString = (date) => {
     const diff = new Date() - date;
     const minutes = Math.floor(diff / 60000);
-
     if (minutes < 1) return '방금 전';
     if (minutes === 1) return '1분 전';
     return `${minutes}분 전`;
@@ -94,10 +90,7 @@ const RealtimeLogStatus = ({ stats, lastUpdate, onStatsChange }) => {
         warnCount: statsData.warnCount,
         errorCount: statsData.errorCount,
       };
-
-      // 전역 상태 업데이트
       updateLogStats(newStats);
-
       if (onStatsChange) {
         onStatsChange(newStats);
       }
@@ -125,10 +118,8 @@ const RealtimeLogStatus = ({ stats, lastUpdate, onStatsChange }) => {
     const updateTimeString = () => {
       setTimeString(getRelativeTimeString(effectiveLastUpdate));
     };
-
     updateTimeString();
-    const timeInterval = setInterval(updateTimeString, 60000); // 1분마다 갱신
-
+    const timeInterval = setInterval(updateTimeString, 60000);
     return () => clearInterval(timeInterval);
   }, [effectiveLastUpdate]);
 
@@ -146,7 +137,6 @@ const RealtimeLogStatus = ({ stats, lastUpdate, onStatsChange }) => {
   );
 };
 
-// 기본 props 설정
 RealtimeLogStatus.defaultProps = {
   stats: null,
   lastUpdate: null,

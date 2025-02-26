@@ -14,16 +14,7 @@ import {
 } from 'chart.js';
 import useUploadStore from '../../stores/uploadStore';
 
-// Chart.js 컴포넌트 등록
-ChartJS.register(
-  ArcElement, // Pie 차트용
-  Tooltip,
-  Legend,
-  CategoryScale, // Bar 차트용
-  LinearScale,
-  BarElement,
-  Title
-);
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
 const AnalysisContainer = styled.div`
   margin-top: 20px;
@@ -49,7 +40,6 @@ const UploadLogAnalysis = ({ logs = [] }) => {
   const uploadedFile = useUploadStore((state) => state.uploadedFile);
   const hasData = !!uploadedFile;
 
-  // 원형 차트 데이터
   const pieChartData = {
     labels: ['INFO', 'WARN', 'ERROR'],
     datasets: [
@@ -66,7 +56,6 @@ const UploadLogAnalysis = ({ logs = [] }) => {
     ],
   };
 
-  // 막대 차트 데이터
   const barChartData = {
     labels: ['INFO', 'WARN', 'ERROR'],
     datasets: [
@@ -120,7 +109,13 @@ const UploadLogAnalysis = ({ logs = [] }) => {
                 alignItems: 'center',
               }}
             >
-              <Pie data={pieChartData} options={{ maintainAspectRatio: false }} />
+              {hasData ? (
+                <Pie data={pieChartData} options={{ maintainAspectRatio: false }} />
+              ) : (
+                <Typography variant="body1" color="text.secondary">
+                  파일을 업로드하면 로그 레벨 분포가 표시됩니다.
+                </Typography>
+              )}
             </Box>
           </ChartContainer>
         </Grid>

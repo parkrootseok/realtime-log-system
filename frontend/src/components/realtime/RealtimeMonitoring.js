@@ -48,7 +48,6 @@ const PaginationWrapper = styled.div`
 
 const LogTable = React.memo(
   ({ logs }) => {
-    // 빈 로그 행 생성
     const emptyRows = Array(20 - logs.length).fill(null);
 
     return (
@@ -126,10 +125,8 @@ const RealtimeMonitoring = ({ logs }) => {
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [pageSize] = useState(20);
-
-  // 실시간 로그 분석 옵션
   const [realtimeOptions, setRealtimeOptions] = useState({
-    refreshInterval: 60000, // 기본 1분
+    refreshInterval: 60000,
     chartType: 'line',
     timeRange: 'day',
   });
@@ -138,7 +135,6 @@ const RealtimeMonitoring = ({ logs }) => {
     updateLogStats(newStats);
   };
 
-  // 실시간 로그 통계 가져오기
   const fetchRealtimeStats = async () => {
     try {
       const stats = await logService.analyzeLogs('', 'ERROR,WARN,INFO');
@@ -153,16 +149,6 @@ const RealtimeMonitoring = ({ logs }) => {
     }
   };
 
-  // 컴포넌트가 마운트될 때와 주기적으로 데이터 가져오기
-  useEffect(() => {
-    // 초기 데이터 로드
-    fetchRealtimeStats();
-
-    // 주기적으로 통계 업데이트
-    const intervalId = setInterval(fetchRealtimeStats, realtimeOptions.refreshInterval);
-    return () => clearInterval(intervalId);
-  }, [realtimeOptions.refreshInterval]);
-
   const fetchFilteredLogs = async () => {
     if (activeTab !== 2) return;
 
@@ -171,20 +157,9 @@ const RealtimeMonitoring = ({ logs }) => {
 
     try {
       const response = await logService.getErrorLogs(undefined, selectedLevels, page, pageSize);
-
-      if (!response?.data?.data?.logs) {
-        console.error('응답 데이터 구조 확인:', response);
-        throw new Error('로그 조회 응답이 올바르지 않습니다.');
-      }
-
       setFilteredLogs(response.data.data.logs);
       setTotalPages(Math.ceil(response.data.data.totalElements / pageSize));
     } catch (err) {
-      console.error('로그 조회 실패:', err);
-      console.error('에러 상세:', {
-        message: err.message,
-        response: err.response,
-      });
       setFilterError('로그 조회 중 오류가 발생했습니다.');
       setFilteredLogs([]);
     } finally {
@@ -194,23 +169,26 @@ const RealtimeMonitoring = ({ logs }) => {
 
   const handleTagToggle = (level) => {
     if (filterLoading) return;
-
     const currentLevels = Array.isArray(selectedLevels)
       ? selectedLevels
       : ['ERROR', 'WARN', 'INFO'];
-
     const newLevels = currentLevels.includes(level)
       ? currentLevels.length > 1
         ? currentLevels.filter((l) => l !== level)
         : currentLevels
       : [...currentLevels, level];
-
     setSelectedLevels(newLevels);
   };
 
   const handlePageChange = (event, newPage) => {
-    setPage(newPage - 1); // MUI Pagination은 1부터 시작하므로 0-based로 변환
+    setPage(newPage - 1);
   };
+
+  useEffect(() => {
+    fetchRealtimeStats();
+    const intervalId = setInterval(fetchRealtimeStats, realtimeOptions.refreshInterval);
+    return () => clearInterval(intervalId);
+  }, [realtimeOptions.refreshInterval]);
 
   useEffect(() => {
     if (activeTab === 2) {

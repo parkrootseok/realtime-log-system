@@ -8,10 +8,7 @@ const useUIStore = create((set) => ({
   setActiveTab: (tab) => set({ activeTab: tab }),
 
   // 초기화
-  resetUIState: () =>
-    set({
-      activeTab: 'realtime',
-    }),
+  resetUIState: () => set({ activeTab: 'realtime' }),
 }));
 
 export default useUIStore;

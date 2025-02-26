@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { Box, Typography, Grid } from '@mui/material';
 import styled from 'styled-components';
 import { Pie, Line } from 'react-chartjs-2';
@@ -15,12 +15,11 @@ import {
 } from 'chart.js';
 import useRealtimeStore from '../../stores/realtimeStore';
 
-// Chart.js 컴포넌트 등록
 ChartJS.register(
-  ArcElement, // Pie 차트용
+  ArcElement,
   Tooltip,
   Legend,
-  CategoryScale, // Line 차트용
+  CategoryScale,
   LinearScale,
   PointElement,
   LineElement,
@@ -77,29 +76,53 @@ const RealtimeLogAnalysis = ({ logs = [], realtimeStats = null }) => {
     if (!hasData) return [];
 
     if (realtimeDistribution.length > 0) {
-      return realtimeDistribution
-        .map((item) => {
-          const timestamp = new Date(item.timestamp);
-          const hour = timestamp.getHours().toString().padStart(2, '0');
-          const minute = timestamp.getMinutes().toString().padStart(2, '0');
-          const timeKey = `${hour}:${minute}`;
+      const now = new Date();
+      const timeData = {};
 
+      for (let i = -5; i < 5; i++) {
+        const time = new Date(now);
+        time.setMinutes(now.getMinutes() + i);
+        time.setSeconds(0, 0);
+
+        const hour = time.getHours().toString().padStart(2, '0');
+        const minute = time.getMinutes().toString().padStart(2, '0');
+        const timeKey = `${hour}:${minute}`;
+
+        timeData[timeKey] = {
+          time: timeKey,
+          total: 0,
+          info: 0,
+          warn: 0,
+          error: 0,
+        };
+      }
+
+      realtimeDistribution.forEach((item) => {
+        const timestamp = new Date(item.timestamp);
+        const hour = timestamp.getHours().toString().padStart(2, '0');
+        const minute = timestamp.getMinutes().toString().padStart(2, '0');
+        const timeKey = `${hour}:${minute}`;
+
+        if (timeData[timeKey]) {
           const counts = item.counts || {};
-          return {
+          timeData[timeKey] = {
             time: timeKey,
             total: Object.values(counts).reduce((sum, count) => sum + count, 0),
             info: counts.INFO || 0,
             warn: counts.WARN || 0,
             error: counts.ERROR || 0,
           };
-        })
-        .sort((a, b) => a.time.localeCompare(b.time));
+        }
+      });
+
+      return Object.values(timeData).sort((a, b) => a.time.localeCompare(b.time));
     }
 
+    // 데이터가 없는 경우 빈 시간대 생성
     const now = new Date();
     const timeData = {};
 
-    for (let i = -5; i <= 5; i++) {
+    for (let i = -5; i < 5; i++) {
       const time = new Date(now);
       time.setMinutes(now.getMinutes() + i);
       time.setSeconds(0, 0);
@@ -131,6 +154,7 @@ const RealtimeLogAnalysis = ({ logs = [], realtimeStats = null }) => {
 
       newSocket.onmessage = (event) => {
         const data = JSON.parse(event.data);
+        console.log('📊 Received WebSocket data:', data);
         if (data.distribution) {
           const distributionData = Object.entries(data.distribution).map(([timestamp, counts]) => ({
             timestamp,
@@ -141,7 +165,6 @@ const RealtimeLogAnalysis = ({ logs = [], realtimeStats = null }) => {
       };
     }
 
-    // 1분마다 데이터 요청
     const intervalId = setInterval(() => {
       if (socket && socket.readyState === WebSocket.OPEN) {
         socket.send(JSON.stringify({ type: 'logDistribution' }));
