@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, Tabs, Tab } from '@mui/material';
+import { Box, Typography, Tabs, Tab, Pagination } from '@mui/material';
 import styled from 'styled-components';
 import { logService } from '../services/api';
 import {
@@ -41,17 +41,20 @@ const ErrorBox = styled(Box)`
   color: #dc2626;
 `;
 
-const LogTable = React.memo(({ logs }) => (
-  <TableContainer>
-    <TableHeader>
-      <TableHeaderRow>
-        <div>발생시각</div>
-        <div>레벨</div>
-        <div>발생위치</div>
-        <div>메시지</div>
-      </TableHeaderRow>
-    </TableHeader>
-    {logs.length > 0 && (
+const LogTable = React.memo(({ logs }) => {
+  // 빈 로그 행 생성
+  const emptyRows = Array(20 - logs.length).fill(null);
+
+  return (
+    <TableContainer>
+      <TableHeader>
+        <TableHeaderRow>
+          <div>발생시각</div>
+          <div>레벨</div>
+          <div>발생위치</div>
+          <div>메시지</div>
+        </TableHeaderRow>
+      </TableHeader>
       <TableBody>
         {logs.map((log, index) => (
           <TableRow key={`${new Date(log.timestamp).getTime()}-${log.message}-${index}`}>
@@ -63,12 +66,26 @@ const LogTable = React.memo(({ logs }) => (
             <TableCell>{log.message}</TableCell>
           </TableRow>
         ))}
+        {emptyRows.map((_, index) => (
+          <TableRow key={`empty-${index}`}>
+            <TableCell>&nbsp;</TableCell>
+            <TableCell>&nbsp;</TableCell>
+            <TableCell>&nbsp;</TableCell>
+            <TableCell>&nbsp;</TableCell>
+          </TableRow>
+        ))}
       </TableBody>
-    )}
-  </TableContainer>
-));
+    </TableContainer>
+  );
+});
 
 LogTable.displayName = 'LogTable';
+
+const PaginationWrapper = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+`;
 
 const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
   const [activeTab, setActiveTab] = useState(0);
@@ -83,6 +100,9 @@ const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
     uploadError,
     stats,
     isUploading,
+    page,
+    pageSize,
+    totalPages,
     initializeUpload,
     updateUploadSuccess,
     updateUploadError,
@@ -90,6 +110,7 @@ const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
     setSelectedLevels,
     setFilterLoading,
     setLogs,
+    setPage,
   } = useUploadStore();
 
   // store에서 전체 로그 가져오기
@@ -119,11 +140,13 @@ const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
         };
 
         // 모든 로그 가져오기
-        const allLogsResponse = await logService.getErrorLogs(newFileName, [
-          'INFO',
-          'WARN',
-          'ERROR',
-        ]);
+        const allLogsResponse = await logService.getErrorLogs(
+          newFileName,
+          ['INFO', 'WARN', 'ERROR'],
+          page,
+          pageSize
+        );
+
         if (!allLogsResponse?.data?.data?.logs) {
           throw new Error('로그 조회 응답이 올바르지 않습니다.');
         }
@@ -149,7 +172,7 @@ const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
     };
 
     handleFileUpload();
-  }, [uploadedFile, processedFile, fileName, isUploading]);
+  }, [uploadedFile, processedFile, fileName, isUploading, page]);
 
   useEffect(() => {
     if (!uploadCompleted || !fileName || !storeLogs) {
@@ -158,15 +181,28 @@ const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
 
     setFilterLoading(true);
     try {
-      const filteredLogsData = storeLogs.filter((log) => selectedLevels.includes(log.level));
-      updateFilterState({ logs: filteredLogsData });
+      const fetchFilteredLogs = async () => {
+        const response = await logService.getErrorLogs(fileName, selectedLevels, page, pageSize);
+        if (!response?.data?.data?.logs) {
+          throw new Error('로그 조회 응답이 올바르지 않습니다.');
+        }
+        updateFilterState({
+          logs: response.data.data.logs,
+          totalElements: response.data.data.totalElements,
+        });
+      };
+      fetchFilteredLogs();
     } catch (err) {
       console.error('로그 필터링 실패:', err);
       updateFilterState({ error: '로그 필터링 중 오류가 발생했습니다.' });
     } finally {
       setFilterLoading(false);
     }
-  }, [uploadCompleted, fileName, selectedLevels, storeLogs]);
+  }, [uploadCompleted, fileName, selectedLevels, page]);
+
+  const handlePageChange = (event, newPage) => {
+    setPage(newPage - 1); // MUI Pagination은 1부터 시작하므로 0-based로 변환
+  };
 
   const handleTagToggle = (level) => {
     if (filterLoading || !fileName) return;
@@ -178,6 +214,7 @@ const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
       : [...selectedLevels, level];
 
     setSelectedLevels(newLevels);
+    setPage(0); // 필터가 변경되면 첫 페이지로 이동
   };
 
   return (
@@ -214,6 +251,15 @@ const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
           </StatsAndFilterWrapper>
 
           <LogTable logs={filteredLogs} />
+          <PaginationWrapper>
+            <Pagination
+              count={totalPages}
+              page={page + 1}
+              onChange={handlePageChange}
+              color="primary"
+              disabled={filterLoading}
+            />
+          </PaginationWrapper>
         </>
       )}
     </MonitoringContainer>

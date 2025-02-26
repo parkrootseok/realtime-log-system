@@ -18,7 +18,7 @@ public class LogController {
     private final LogUseCase logUseCase;
 
     @GetMapping("/analyze")
-    public Result<GetCountLogResponse> analyzeLogLevels(
+    public Result<GetCountLogResponse> getAnalyzeLogByLevel(
             @RequestParam(defaultValue = "app.log") String fileName,
             @RequestParam(required = false) String levels
     ) throws IOException {
@@ -26,16 +26,18 @@ public class LogController {
     }
 
     @GetMapping("/errors")
-    public Result<GetFilteredLogResponse> filterLogsByLevel(
+    public Result<GetFilteredLogResponse> getFilteredLogs(
             @RequestParam(defaultValue = "app.log") String fileName,
-            @RequestParam(required = false) String levels
+            @RequestParam(required = false) String levels,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
     ) throws IOException {
-        return Result.of(logUseCase.filterLogsByLevel(fileName, levels));
+        return Result.of(logUseCase.filterLogsByLevel(fileName, levels, page, size));
     }
 
     @PostMapping("/upload")
-    public Result<UploadLogResponse> saveUploadedLog(@RequestParam("file") MultipartFile file) {
-        return Result.of(logUseCase.saveUploadedLog(file));
+    public Result<UploadLogResponse> uploadLog(@RequestParam("file") MultipartFile file) {
+        return Result.of(logUseCase.saveLogFile(file));
     }
 
 }

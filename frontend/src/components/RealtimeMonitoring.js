@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Tabs, Tab } from '@mui/material';
+import { Box, Tabs, Tab, Pagination } from '@mui/material';
 import styled from 'styled-components';
 import { logService } from '../services/api';
 import {
@@ -40,36 +40,55 @@ const ErrorBox = styled.div`
   margin-bottom: 16px;
 `;
 
-const LogTable = React.memo(
-  ({ logs }) => (
-    <TableContainer>
-      <TableHeader>
-        <TableHeaderRow>
-          <div>발생시각</div>
-          <div>레벨</div>
-          <div>발생위치</div>
-          <div>메시지</div>
-        </TableHeaderRow>
-      </TableHeader>
-      <TableBody>
-        {logs.map((log) => {
-          const timestamp =
-            typeof log.timestamp === 'string' ? new Date(log.timestamp) : log.timestamp;
+const PaginationWrapper = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+`;
 
-          return (
-            <TableRow key={`${timestamp.getTime()}-${log.serviceName}-${log.message}`}>
-              <TableCell>{timestamp.toLocaleString()}</TableCell>
-              <TableCell>
-                <LogLevel $level={log.level}>{log.level}</LogLevel>
-              </TableCell>
-              <TableCell>{log.serviceName}</TableCell>
-              <TableCell>{log.message}</TableCell>
+const LogTable = React.memo(
+  ({ logs }) => {
+    // 빈 로그 행 생성
+    const emptyRows = Array(20 - logs.length).fill(null);
+
+    return (
+      <TableContainer>
+        <TableHeader>
+          <TableHeaderRow>
+            <div>발생시각</div>
+            <div>레벨</div>
+            <div>발생위치</div>
+            <div>메시지</div>
+          </TableHeaderRow>
+        </TableHeader>
+        <TableBody>
+          {logs.map((log) => {
+            const timestamp =
+              typeof log.timestamp === 'string' ? new Date(log.timestamp) : log.timestamp;
+
+            return (
+              <TableRow key={`${timestamp.getTime()}-${log.serviceName}-${log.message}`}>
+                <TableCell>{timestamp.toLocaleString()}</TableCell>
+                <TableCell>
+                  <LogLevel $level={log.level}>{log.level}</LogLevel>
+                </TableCell>
+                <TableCell>{log.serviceName}</TableCell>
+                <TableCell>{log.message}</TableCell>
+              </TableRow>
+            );
+          })}
+          {emptyRows.map((_, index) => (
+            <TableRow key={`empty-${index}`}>
+              <TableCell>&nbsp;</TableCell>
+              <TableCell>&nbsp;</TableCell>
+              <TableCell>&nbsp;</TableCell>
+              <TableCell>&nbsp;</TableCell>
             </TableRow>
-          );
-        })}
-      </TableBody>
-    </TableContainer>
-  ),
+          ))}
+        </TableBody>
+      </TableContainer>
+    );
+  },
   (prevProps, nextProps) => {
     const getLastTimestamp = (logs) => {
       if (!logs || logs.length === 0) return null;
@@ -101,8 +120,12 @@ const RealtimeMonitoring = ({ logs }) => {
     setFilterLoading,
     setFilterError,
     logStats,
-    updateLogStats
+    updateLogStats,
   } = useRealtimeStore();
+
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [pageSize] = useState(20);
 
   // 실시간 로그 분석 옵션
   const [realtimeOptions, setRealtimeOptions] = useState({
@@ -147,7 +170,7 @@ const RealtimeMonitoring = ({ logs }) => {
     setFilterError(null);
 
     try {
-      const response = await logService.getErrorLogs(undefined, selectedLevels);
+      const response = await logService.getErrorLogs(undefined, selectedLevels, page, pageSize);
 
       if (!response?.data?.data?.logs) {
         console.error('응답 데이터 구조 확인:', response);
@@ -155,6 +178,7 @@ const RealtimeMonitoring = ({ logs }) => {
       }
 
       setFilteredLogs(response.data.data.logs);
+      setTotalPages(Math.ceil(response.data.data.totalElements / pageSize));
     } catch (err) {
       console.error('로그 조회 실패:', err);
       console.error('에러 상세:', {
@@ -184,11 +208,15 @@ const RealtimeMonitoring = ({ logs }) => {
     setSelectedLevels(newLevels);
   };
 
+  const handlePageChange = (event, newPage) => {
+    setPage(newPage - 1); // MUI Pagination은 1부터 시작하므로 0-based로 변환
+  };
+
   useEffect(() => {
     if (activeTab === 2) {
       fetchFilteredLogs();
     }
-  }, [activeTab, selectedLevels]);
+  }, [activeTab, selectedLevels, page]);
 
   return (
     <MonitoringContainer>
@@ -237,6 +265,15 @@ const RealtimeMonitoring = ({ logs }) => {
               />
             </FilterWrapper>
             <LogTable logs={filteredLogs} />
+            <PaginationWrapper>
+              <Pagination
+                count={totalPages}
+                page={page + 1}
+                onChange={handlePageChange}
+                color="primary"
+                disabled={filterLoading}
+              />
+            </PaginationWrapper>
           </>
         )}
       </Box>

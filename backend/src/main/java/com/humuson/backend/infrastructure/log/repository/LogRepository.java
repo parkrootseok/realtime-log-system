@@ -11,6 +11,6 @@ public interface LogRepository {
     List<LogEntity> readLogs(String fileName) throws IOException;
     List<LogEntity> readLastNLogs(String fileName, int limit) throws IOException;
     List<LogEntity> readLogsByTimeRange(String fileName, LocalDateTime startTime, LocalDateTime endTime) throws IOException;
-    String saveLog(MultipartFile file) throws IOException;
+    String saveLog(MultipartFile file, String newFileName) throws IOException;
 
 }

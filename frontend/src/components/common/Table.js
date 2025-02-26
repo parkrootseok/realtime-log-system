@@ -3,20 +3,18 @@ import { COLORS } from '../../constants/colors';
 import { TABLE_CONFIG } from '../../constants/config';
 
 export const TableContainer = styled.div`
-  width: 100%;
-  border: 1px solid ${COLORS.grey[200]};
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
   overflow: hidden;
-  background: #ffffff;
+  height: 600px;
+  display: flex;
+  flex-direction: column;
 `;
 
 export const TableHeader = styled.div`
-  width: 100%;
-  background-color: ${COLORS.grey[50]};
-  border-bottom: 1px solid ${COLORS.grey[200]};
-  position: sticky;
-  top: 0;
-  z-index: 10;
+  background-color: #f8fafc;
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
 `;
 
 export const TableHeaderTop = styled.div`
@@ -28,65 +26,60 @@ export const TableHeaderTop = styled.div`
 
 export const TableHeaderRow = styled.div`
   display: grid;
-  grid-template-columns: 180px 100px 150px 1fr;
+  grid-template-columns: 200px 100px 1fr 2fr;
   padding: 12px 16px;
   font-weight: 600;
-  color: ${COLORS.grey[600]};
-  font-size: 14px;
+  color: #475569;
 
   > div {
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
-    padding: 0 8px;
+  }
+
+  > div:nth-child(3),
+  > div:nth-child(4) {
+    justify-content: flex-start;
   }
 `;
 
-export const TableRow = styled(TableHeaderRow)`
-  font-weight: normal;
-  background-color: transparent;
-  border-bottom: 1px solid ${COLORS.grey[200]};
-  transition: background-color 0.2s ease;
-
-  &:hover {
-    background-color: ${COLORS.grey[50]};
-  }
+export const TableRow = styled.div`
+  display: grid;
+  grid-template-columns: 200px 100px 1fr 2fr;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
 
   &:last-child {
     border-bottom: none;
   }
 
-  > div {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  &:hover {
+    background-color: #f8fafc;
   }
 
-  > div:nth-child(1),
-  > div:nth-child(2),
-  > div:nth-child(3) {
+  > div:first-child {
+    display: flex;
     justify-content: center;
   }
 
-  > div:last-child {
-    justify-content: flex-start;
+  > div:nth-child(2) {
+    display: flex;
+    justify-content: center;
   }
 `;
 
 export const TableCell = styled.div`
-  display: flex;
-  align-items: center;
-  padding: 0 8px;
+  color: #1e293b;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: ${COLORS.grey[800]};
-  font-size: 14px;
 `;
 
 export const TableBody = styled.div`
   overflow-y: auto;
+  flex: 1;
+
   max-height: ${TABLE_CONFIG.MAX_HEIGHT};
 
   &::-webkit-scrollbar {

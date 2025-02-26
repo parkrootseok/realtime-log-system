@@ -105,10 +105,15 @@ class LogService {
    * 에러 로그를 조회합니다.
    * @param {string} [fileName] - 조회할 로그 파일명 (선택)
    * @param {string[]} [levels] - 조회할 로그 레벨
+   * @param {number} [page=0] - 페이지 번호
+   * @param {number} [size=20] - 페이지 크기
    * @returns {Promise<ApiResponse>} 조회 결과
    */
-  async getErrorLogs(fileName = null, levels = ['ERROR', 'WARN', 'INFO']) {
-    const params = {};
+  async getErrorLogs(fileName = null, levels = ['ERROR', 'WARN', 'INFO'], page = 0, size = 20) {
+    const params = {
+      page,
+      size,
+    };
 
     if (fileName) {
       params.fileName = fileName;

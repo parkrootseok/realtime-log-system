@@ -4,6 +4,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 public interface LogUploadService {
 
-    String saveUploadedLog(MultipartFile file);
+    String saveLogFile(MultipartFile file);
 
 }
