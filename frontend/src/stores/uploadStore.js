@@ -14,6 +14,9 @@ const initialState = {
   filterLoading: false,
   filterError: null,
   timeUnit: 'day',
+  page: 0,
+  pageSize: 20,
+  totalPages: 0,
 };
 
 const useUploadStore = create((set) => ({
@@ -32,6 +35,8 @@ const useUploadStore = create((set) => ({
       filteredLogs: [],
       stats: { totalCount: 0, infoCount: 0, errorCount: 0, warnCount: 0 },
       selectedLevels: ['ERROR', 'WARN', 'INFO'],
+      page: 0,
+      totalPages: 0,
     }),
 
   setUploadSuccess: (success) =>
@@ -76,11 +81,12 @@ const useUploadStore = create((set) => ({
       isUploading: false,
     }),
 
-  updateFilterState: ({ logs, error }) =>
+  updateFilterState: ({ logs, error, totalElements }) =>
     set((state) => ({
       filteredLogs: error ? [] : logs,
       filterError: error,
       filterLoading: false,
+      totalPages: totalElements ? Math.ceil(totalElements / state.pageSize) : state.totalPages,
     })),
 
   setSelectedLevels: (levels) => set({ selectedLevels: levels }),
@@ -101,6 +107,11 @@ const useUploadStore = create((set) => ({
   setStats: (stats) => set({ stats }),
 
   reset: () => set({ uploadedFile: null, stats: null, logs: [] }),
+
+  // 페이지네이션 관련 액션 추가
+  setPage: (page) => set({ page }),
+  setTotalPages: (totalPages) => set({ totalPages }),
+  resetPagination: () => set({ page: 0, totalPages: 0 }),
 }));
 
 export default useUploadStore;

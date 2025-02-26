@@ -112,16 +112,16 @@ const LogViewer = () => {
     setUploadError,
     resetStats,
   } = useUploadStore();
-  const { 
-    connected, 
-    error, 
-    logs, 
-    setConnected, 
-    setError, 
-    addLog, 
-    setLogs, 
+  const {
+    connected,
+    error,
+    logs,
+    setConnected,
+    setError,
+    addLog,
+    setLogs,
     resetRealtimeState,
-    initSocket
+    initSocket,
   } = useRealtimeStore();
 
   // 탭 변경 시 파일 상태 유지를 위한 ref 추가
@@ -153,7 +153,7 @@ const LogViewer = () => {
     setUploadedFile(null);
     setUploadSuccess(false);
     setUploadError(null);
-    
+
     // uploadStore의 상태 초기화
     resetStats();
     setUploadedFile(null); // uploadStore의 uploadedFile 초기화
