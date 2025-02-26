@@ -308,7 +308,6 @@ const LogViewer = () => {
         </LeftSection>
 
         <LogContent>
-          {error && <ErrorMessage>{error}</ErrorMessage>}
           {activeTab === 'realtime' ? (
             <RealtimeMonitoring logs={logs} />
           ) : (

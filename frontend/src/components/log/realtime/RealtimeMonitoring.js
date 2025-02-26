@@ -37,36 +37,31 @@ const PaginationWrapper = styled.div`
 `;
 
 const RealtimeMonitoring = ({ logs = [] }) => {
+  console.log('=== RealtimeMonitoring 컴포넌트 렌더링 ===');
+
   const {
     activeTab,
     selectedLevels,
     filteredLogs,
-    filterLoading,
+    totalPages,
+    page,
     filterError,
-    setActiveTab,
-    setSelectedLevels,
-    setFilteredLogs,
-    setFilterLoading,
-    setFilterError,
+    filterLoading,
     logStats,
-    updateLogStats,
+    setActiveTab,
+    handleTagToggle,
+    handlePageChange,
+    handleStatsChange,
   } = useRealtimeStore();
 
-  const [page, setPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [pageSize] = useState(20);
+  console.log('Initial state:', { activeTab, logs: logs.length, logStats });
 
-  const handleStatsChange = useCallback(
-    (newStats) => {
-      updateLogStats(newStats);
-    },
-    [updateLogStats]
-  );
+  const [pageSize] = useState(20);
 
   const fetchRealtimeStats = useCallback(async () => {
     try {
       const stats = await logService.analyzeLogs('', 'ERROR,WARN,INFO');
-      updateLogStats({
+      handleStatsChange({
         totalLogsCount: stats.totalLines || 0,
         errorCount: stats.errorCount || 0,
         infoCount: stats.infoCount || 0,
@@ -75,13 +70,13 @@ const RealtimeMonitoring = ({ logs = [] }) => {
     } catch (err) {
       console.error('실시간 로그 통계 조회 실패:', err);
     }
-  }, [updateLogStats]);
+  }, [handleStatsChange]);
 
   const fetchFilteredLogs = useCallback(async () => {
     if (activeTab !== 2) return;
 
-    setFilterLoading(true);
-    setFilterError(null);
+    filterLoading(true);
+    filterError(null);
 
     try {
       const response = await logService.getErrorLogs(undefined, selectedLevels, page, pageSize);
@@ -90,46 +85,25 @@ const RealtimeMonitoring = ({ logs = [] }) => {
         throw new Error('로그 조회 응답이 올바르지 않습니다.');
       }
 
-      setFilteredLogs(response.data.data.logs);
-      setTotalPages(Math.ceil(response.data.data.totalElements / pageSize));
+      filteredLogs(response.data.data.logs);
+      totalPages(Math.ceil(response.data.data.totalElements / pageSize));
     } catch (err) {
       console.error('로그 조회 실패:', err);
-      setFilterError('로그 조회 중 오류가 발생했습니다.');
-      setFilteredLogs([]);
+      filterError('로그 조회 중 오류가 발생했습니다.');
+      filteredLogs([]);
     } finally {
-      setFilterLoading(false);
+      filterLoading(false);
     }
   }, [
     activeTab,
     selectedLevels,
     page,
     pageSize,
-    setFilterLoading,
-    setFilterError,
-    setFilteredLogs,
+    filterLoading,
+    filterError,
+    filteredLogs,
+    totalPages,
   ]);
-
-  const handleTagToggle = useCallback(
-    (level) => {
-      if (filterLoading) return;
-
-      const currentLevels = Array.isArray(selectedLevels)
-        ? selectedLevels
-        : ['ERROR', 'WARN', 'INFO'];
-      const newLevels = currentLevels.includes(level)
-        ? currentLevels.length > 1
-          ? currentLevels.filter((l) => l !== level)
-          : currentLevels
-        : [...currentLevels, level];
-
-      setSelectedLevels(newLevels);
-    },
-    [filterLoading, selectedLevels, setSelectedLevels]
-  );
-
-  const handlePageChange = useCallback((event, newPage) => {
-    setPage(newPage - 1);
-  }, []);
 
   useEffect(() => {
     fetchRealtimeStats();
@@ -146,6 +120,9 @@ const RealtimeMonitoring = ({ logs = [] }) => {
   const renderContent = () => {
     switch (activeTab) {
       case 0:
+        console.log('=== RealtimeMonitoring: LogAnalysis props ===');
+        console.log('logs:', logs);
+        console.log('logStats:', logStats);
         return <LogAnalysis logs={logs} source="realtime" realtimeStats={logStats} />;
       case 1:
         return (

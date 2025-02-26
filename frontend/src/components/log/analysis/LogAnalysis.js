@@ -36,24 +36,110 @@ const AnalysisContainer = styled.div`
 `;
 
 const LogAnalysis = ({ logs = [], source = 'upload', realtimeStats = null }) => {
+  console.log('=== LogAnalysis 컴포넌트 렌더링 ===');
+  console.log('Props:', { logs, source, realtimeStats });
+
   const [timeUnit, setTimeUnit] = useState(source === 'realtime' ? 'minute' : 'day');
   const [realtimeDistribution, setRealtimeDistribution] = useState([]);
   const { initDistributionSocket, setRealtimeDistribution: setGlobalRealtimeDistribution } =
     useRealtimeStore();
 
   const uploadStats = useUploadStore((state) => state.stats);
-  const uploadedFile = useUploadStore((state) => state.uploadedFile);
   const uploadedLogs = useUploadStore((state) => state.logs || []);
+  const realtimeLogs = useRealtimeStore((state) => state.logs || []);
+  const realtimeStoreStats = useRealtimeStore((state) => state.stats);
 
-  const currentLogs = source === 'realtime' ? logs : uploadedLogs.length > 0 ? uploadedLogs : logs;
-  const stats = source === 'realtime' ? realtimeStats : uploadStats;
+  console.log('=== Store 데이터 ===');
+  console.log('source:', source);
+  console.log('uploadStats:', uploadStats);
+  console.log('realtimeStats:', realtimeStoreStats);
+  console.log('uploadedLogs:', uploadedLogs);
+  console.log('realtimeLogs:', realtimeLogs);
+
+  const currentLogs = source === 'realtime' ? realtimeLogs : uploadedLogs;
+  const stats = source === 'realtime' ? realtimeStoreStats : uploadStats;
   const hasData =
-    source === 'realtime' ? !!realtimeStats || realtimeDistribution.length > 0 : !!uploadedFile;
+    source === 'realtime' ? !!realtimeStoreStats || realtimeDistribution.length > 0 : !!stats;
+
+  console.log('=== 계산된 값 ===');
+  console.log('currentLogs:', currentLogs);
+  console.log('stats:', stats);
+  console.log('hasData:', hasData);
 
   const timeSeriesData = useMemo(() => {
-    if (!hasData) return [];
+    console.log('=== timeSeriesData useMemo 실행 ===');
+    console.log('Dependencies:', {
+      currentLogsLength: currentLogs?.length,
+      timeUnit,
+      source,
+      realtimeDistributionLength: realtimeDistribution.length,
+      hasData,
+      stats,
+    });
 
-    if (source === 'realtime' && realtimeDistribution.length > 0) {
+    if (!hasData) {
+      console.log('데이터 없음으로 빈 배열 반환');
+      return [];
+    }
+
+    // 업로드 모드일 때의 처리
+    if (source === 'upload') {
+      console.log('업로드 모드 timeSeriesData 생성');
+      console.log('업로드된 로그 수:', currentLogs?.length);
+      console.log('업로드 stats:', stats);
+
+      if (!currentLogs?.length || !stats) {
+        return [];
+      }
+
+      const timeData = {};
+
+      currentLogs.forEach((log) => {
+        const timestamp =
+          typeof log.timestamp === 'string' ? new Date(log.timestamp) : log.timestamp;
+        let timeKey;
+
+        if (timeUnit === 'month') {
+          const year = timestamp.getFullYear();
+          const month = (timestamp.getMonth() + 1).toString().padStart(2, '0');
+          timeKey = `${year}-${month}`;
+        } else {
+          timeKey = timestamp.toISOString().split('T')[0];
+        }
+
+        if (!timeData[timeKey]) {
+          timeData[timeKey] = {
+            time: timeKey,
+            displayTime:
+              timeUnit === 'month' ? timeKey.replace(/(\d{4})-(\d{2})/, '$1년 $2월') : timeKey,
+            total: 0,
+            info: 0,
+            warn: 0,
+            error: 0,
+          };
+        }
+
+        timeData[timeKey].total += 1;
+
+        const level = log.level.toLowerCase();
+        if (level === 'info' || level === 'warn' || level === 'error') {
+          timeData[timeKey][level] += 1;
+        }
+      });
+
+      const result = Object.values(timeData).sort((a, b) => a.time.localeCompare(b.time));
+      console.log('생성된 업로드 timeSeriesData:', result);
+
+      // 전체 합계 검증
+      const totalSum = result.reduce((sum, item) => sum + item.total, 0);
+      console.log('timeSeriesData 전체 합계:', totalSum);
+      console.log('stats.totalCount:', stats.totalCount);
+
+      return result;
+    }
+
+    // 실시간 모드일 때의 처리
+    if (realtimeDistribution.length > 0) {
       return realtimeDistribution
         .map((item) => {
           const timestamp = new Date(item.timestamp);
@@ -74,76 +160,31 @@ const LogAnalysis = ({ logs = [], source = 'upload', realtimeStats = null }) => 
         .sort((a, b) => a.time.localeCompare(b.time));
     }
 
-    if (!currentLogs.length) return [];
-
+    // 실시간 모드의 기본 타임라인 생성
     const timeData = {};
+    const now = new Date();
+    for (let i = -5; i <= 5; i++) {
+      const time = new Date(now);
+      time.setMinutes(now.getMinutes() + i);
+      time.setSeconds(0, 0);
 
-    if (source === 'realtime') {
-      const now = new Date();
-      for (let i = -5; i <= 5; i++) {
-        const time = new Date(now);
-        time.setMinutes(now.getMinutes() + i);
-        time.setSeconds(0, 0);
+      const hour = time.getHours().toString().padStart(2, '0');
+      const minute = time.getMinutes().toString().padStart(2, '0');
+      const timeKey = `${hour}:${minute}`;
 
-        const hour = time.getHours().toString().padStart(2, '0');
-        const minute = time.getMinutes().toString().padStart(2, '0');
-        const timeKey = `${hour}:${minute}`;
-
-        timeData[timeKey] = {
-          time: timeKey,
-          total: 0,
-          info: 0,
-          warn: 0,
-          error: 0,
-        };
-      }
+      timeData[timeKey] = {
+        time: timeKey,
+        total: 0,
+        info: 0,
+        warn: 0,
+        error: 0,
+      };
     }
 
-    currentLogs.forEach((log) => {
-      const timestamp = typeof log.timestamp === 'string' ? new Date(log.timestamp) : log.timestamp;
-
-      let timeKey;
-      if (source === 'upload') {
-        if (timeUnit === 'month') {
-          const year = timestamp.getFullYear();
-          const month = (timestamp.getMonth() + 1).toString().padStart(2, '0');
-          timeKey = `${year}-${month}`;
-        } else if (timeUnit === 'day') {
-          timeKey = timestamp.toISOString().split('T')[0];
-        }
-      } else {
-        const roundedTimestamp = new Date(timestamp);
-        roundedTimestamp.setSeconds(0, 0);
-
-        const hour = roundedTimestamp.getHours().toString().padStart(2, '0');
-        const minute = roundedTimestamp.getMinutes().toString().padStart(2, '0');
-        timeKey = `${hour}:${minute}`;
-      }
-
-      if (!timeData[timeKey]) {
-        timeData[timeKey] = {
-          time: timeKey,
-          displayTime:
-            source === 'upload' && timeUnit === 'month'
-              ? timeKey.replace(/(\d{4})-(\d{2})/, '$1년 $2월')
-              : timeKey,
-          total: 0,
-          info: 0,
-          warn: 0,
-          error: 0,
-        };
-      }
-
-      timeData[timeKey].total += 1;
-
-      const level = log.level.toLowerCase();
-      if (level === 'info' || level === 'warn' || level === 'error') {
-        timeData[timeKey][level] += 1;
-      }
-    });
-
     return Object.values(timeData).sort((a, b) => a.time.localeCompare(b.time));
-  }, [currentLogs, timeUnit, source, realtimeDistribution, hasData]);
+  }, [currentLogs, timeUnit, source, realtimeDistribution, hasData, stats]);
+
+  console.log('=== 최종 timeSeriesData ===', timeSeriesData);
 
   useEffect(() => {
     if (source !== 'realtime') return;
@@ -201,12 +242,13 @@ const LogAnalysis = ({ logs = [], source = 'upload', realtimeStats = null }) => 
     }
   };
 
-  const totalCount =
-    source === 'realtime' ? stats?.totalLogsCount || 0 : stats?.totalCount || currentLogs.length;
+  const totalCount = source === 'realtime' ? stats?.totalLogsCount || 0 : stats?.totalCount || 0;
+
   const errorRatio =
-    hasData && totalCount ? Math.round(((stats?.errorCount || 0) / totalCount) * 100) : 0;
+    hasData && totalCount && stats ? Math.round(((stats.errorCount || 0) / totalCount) * 100) : 0;
+
   const warnRatio =
-    hasData && totalCount ? Math.round(((stats?.warnCount || 0) / totalCount) * 100) : 0;
+    hasData && totalCount && stats ? Math.round(((stats.warnCount || 0) / totalCount) * 100) : 0;
 
   return (
     <AnalysisContainer>
@@ -221,7 +263,8 @@ const LogAnalysis = ({ logs = [], source = 'upload', realtimeStats = null }) => 
             timeUnit={timeUnit}
             onTimeUnitChange={handleTimeUnitChange}
             source={source}
-            hasData={hasData}
+            hasData={hasData && currentLogs?.length > 0}
+            stats={stats}
           />
         </Grid>
         <Grid item xs={12}>
