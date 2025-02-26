@@ -56,8 +56,8 @@ const TimeUnitToggle = styled(ToggleButtonGroup)`
 const LogAnalysis = ({ logs = [], source = 'upload', realtimeStats = null }) => {
   // 실시간 모드에서는 기본값을 'minute'로 설정
   const [timeUnit, setTimeUnit] = useState(source === 'realtime' ? 'minute' : 'day');
-  // 실시간 모드에서 시간 간격 설정 (1분 단위로 고정)
-  const [timeInterval, setTimeInterval] = useState('minute');
+  // 실시간 로그 분포 데이터 상태 추가
+  const [realtimeDistribution, setRealtimeDistribution] = useState([]);
 
   // uploadStore에서 stats, 현재 파일 상태, 저장된 로그 데이터 가져오기
   const uploadStats = useUploadStore((state) => state.stats);
@@ -69,7 +69,15 @@ const LogAnalysis = ({ logs = [], source = 'upload', realtimeStats = null }) => 
 
   // source에 따라 적절한 stats 사용
   const stats = source === 'realtime' ? realtimeStats : uploadStats;
-  const hasData = source === 'realtime' ? !!realtimeStats : !!uploadedFile;
+  const hasData = source === 'realtime' ? (!!realtimeStats || realtimeDistribution.length > 0) : !!uploadedFile;
+
+
+  const logMessage = (message, data) => {
+    if (process.env.NODE_ENV === 'development') {
+      // eslint-disable-next-line no-console
+      console.info(message, data);
+    }
+  };
 
   // 원형 차트 데이터 - 적절한 stats 사용
   const pieChartData = {
@@ -85,8 +93,32 @@ const LogAnalysis = ({ logs = [], source = 'upload', realtimeStats = null }) => 
   };
 
   const getTimeSeriesData = () => {
-    if (!hasData || !currentLogs.length) return [];
-
+    if (!hasData) return [];
+    
+    // 실시간 모드에서 WebSocket으로 받은 분포 데이터 사용
+    if (source === 'realtime' && realtimeDistribution.length > 0) {
+      return realtimeDistribution.map(item => {
+        const timestamp = new Date(item.timestamp);
+        const hour = timestamp.getHours().toString().padStart(2, '0');
+        const minute = timestamp.getMinutes().toString().padStart(2, '0');
+        const timeKey = `${hour}:${minute}`;
+        
+        // counts가 null이나 undefined일 경우 빈 객체로 처리
+        const counts = item.counts || {};
+        
+        return {
+          time: timeKey,
+          total: Object.values(counts).reduce((sum, count) => sum + count, 0),
+          info: counts.INFO || 0,
+          warn: counts.WARN || 0,
+          error: counts.ERROR || 0
+        };
+      }).sort((a, b) => a.time.localeCompare(b.time));
+    }
+    
+    // 기존 로직 (업로드 모드 또는 실시간 모드에서 WebSocket 데이터가 없을 때)
+    if (!currentLogs.length) return [];
+    
     const timeData = {};
 
     // 실시간 모드에서 시간 데이터 초기화
@@ -166,24 +198,70 @@ const LogAnalysis = ({ logs = [], source = 'upload', realtimeStats = null }) => 
     return Object.values(timeData).sort((a, b) => a.time.localeCompare(b.time));
   };
 
+  useEffect(() => {
+    if (source !== 'realtime') return;
+    
+    logMessage('시계열 데이터 수집: WebSocket 연결 시도 중...');
+    const socket = new WebSocket('ws://localhost:8080/log/ws-distribution');
+    
+    socket.onopen = () => {
+      logMessage('시계열 데이터 수집: WebSocket 연결 성공');
+      const message = JSON.stringify({ type: 'logDistribution' });
+      logMessage('시계열 데이터 수집: 초기 데이터 요청 전송');
+      socket.send(message);
+    };
+    
+    socket.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        // 로그 분포 데이터인지 확인
+        const isDistributionData = Array.isArray(data) && 
+          data.length > 0 && 
+          data[0].timestamp && 
+          data[0].counts;
+        
+        if (isDistributionData) {
+          setRealtimeDistribution(data);
+        }
+      } catch (error) {
+        logMessage('시계열 데이터 수집: 데이터 파싱 오류 발생', error);
+      }
+    };
+    
+    socket.onerror = (error) => {
+      logMessage('시계열 데이터 수집: WebSocket 연결 오류 발생', error);
+    };
+    
+    socket.onclose = () => {
+      logMessage('시계열 데이터 수집: WebSocket 연결 종료됨');
+    };
+    
+    const intervalId = setInterval(() => {
+      if (socket.readyState === WebSocket.OPEN) {
+        logMessage('시계열 데이터 수집: 주기적 데이터 요청 전송');
+        socket.send(JSON.stringify({ type: 'logDistribution' }));
+      }
+    }, 10 * 60 * 1000);
+    
+    return () => {
+      clearInterval(intervalId);
+      socket.close();
+    };
+  }, [source]);
+
   const timeSeriesData = getTimeSeriesData();
 
-  // 디버깅을 위한 로그 추가
   useEffect(() => {
-    if (source === 'realtime') {
-      console.log('1분 단위 시계열 데이터:', timeSeriesData);
+    if (source === 'realtime' && realtimeDistribution.length > 0) {
+      // eslint-disable-next-line no-console
+      console.log('로그 분포 데이터 업데이트됨 - 시간:', new Date().toLocaleTimeString());
     }
-  }, [timeSeriesData, source]);
+  }, [realtimeDistribution, source]);
 
   const handleTimeUnitChange = (event, newTimeUnit) => {
     if (newTimeUnit !== null) {
       setTimeUnit(newTimeUnit);
-    }
-  };
-
-  const handleTimeIntervalChange = (_, newInterval) => {
-    if (newInterval !== null) {
-      setTimeInterval(newInterval);
     }
   };
 
@@ -252,13 +330,10 @@ const LogAnalysis = ({ logs = [], source = 'upload', realtimeStats = null }) => 
     source === 'realtime' ? stats?.totalLogsCount || 0 : stats?.totalCount || currentLogs.length;
 
   // 에러 비율 계산
-  const errorRatio = hasData && totalCount ? Math.round((stats.errorCount / totalCount) * 100) : 0;
+  const errorRatio = hasData && totalCount ? Math.round((stats?.errorCount || 0) / totalCount * 100) : 0;
 
   // 경고 비율 계산
-  const warnRatio =
-    hasData && totalCount && stats?.warnCount
-      ? Math.round((stats.warnCount / totalCount) * 100)
-      : 0;
+  const warnRatio = hasData && totalCount ? Math.round((stats?.warnCount || 0) / totalCount * 100) : 0;
 
   // 업로드 모드의 시간 단위 토글 버튼 렌더링
   const renderUploadTimeUnitToggle = () => (
