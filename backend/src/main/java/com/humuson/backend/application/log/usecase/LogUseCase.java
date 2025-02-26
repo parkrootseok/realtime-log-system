@@ -36,7 +36,7 @@ public class LogUseCase {
         );
     }
 
-    public GetLogDistributionResponse groupLogsByMinute(String fileName, LocalDateTime start, LocalDateTime end) throws IOException {
+    public GetLogDistributionResponse getLogDistribution(String fileName, LocalDateTime start, LocalDateTime end) throws IOException {
         List<LogEntity> logs = logQueryService.getLogsByStartAndEnd(fileName, start, end);
         Map<String, Map<Level, Long>> groupedLogs = logAnalysisService.getLogsGroupByMinute(logs);
         return GetLogDistributionResponse.of(groupedLogs);
@@ -46,14 +46,21 @@ public class LogUseCase {
         return logQueryService.getRecentLogsByLimit(fileName, limit);
     }
 
-    public GetFilteredLogResponse filterLogsByLevel(String fileName, String levels) throws IOException {
+    public GetFilteredLogResponse filterLogsByLevel(String fileName, String levels, int page, int size) throws IOException {
         List<LogEntity> logs = logQueryService.getLogs(fileName);
         List<LogEntity> filteredLogs = logAnalysisService.getLogsFilterByLevel(logs, levels);
-        return GetFilteredLogResponse.of(filteredLogs);
+        return GetFilteredLogResponse.of(paginateLogs(page, size, filteredLogs), page, size, filteredLogs.size());
     }
 
-    public UploadLogResponse saveUploadedLog(MultipartFile fileName) {
-        return UploadLogResponse.of(logUploadService.saveUploadedLog(fileName));
+    private static List<LogEntity> paginateLogs(int page, int size,
+            List<LogEntity> filteredLogs) {
+        int fromIndex = page * size;
+        int toIndex = Math.min(fromIndex + size, filteredLogs.size());
+        return filteredLogs.subList(fromIndex, toIndex);
+    }
+
+    public UploadLogResponse saveLogFile(MultipartFile fileName) {
+        return UploadLogResponse.of(logUploadService.saveLogFile(fileName));
     }
 
 }

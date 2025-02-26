@@ -48,7 +48,7 @@ public class LogDistributionWebSocketHandler extends TextWebSocketHandler {
 
     private void sendLogDistribution(WebSocketSession session, String fileName) throws IOException {
         LocalDateTime now = LocalDateTime.now();
-        GetLogDistributionResponse logDistribution = logUseCase.groupLogsByMinute(fileName, now.minusMinutes(10), now);
+        GetLogDistributionResponse logDistribution = logUseCase.getLogDistribution(fileName, now.minusMinutes(10), now);
         session.sendMessage(new TextMessage(objectMapper.writeValueAsString(logDistribution)));
     }
 

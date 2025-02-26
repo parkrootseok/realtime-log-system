@@ -18,7 +18,7 @@ public class LogUploadServiceImpl implements LogUploadService {
     private final LogRepository logRepository;
 
     @Override
-    public String saveUploadedLog(MultipartFile file) {
+    public String saveLogFile(MultipartFile file) {
 
         if (!isValidLogFile(file)) {
             throw new InvalidFileFormatException();

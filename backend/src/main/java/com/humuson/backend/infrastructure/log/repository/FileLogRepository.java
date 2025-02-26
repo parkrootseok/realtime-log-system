@@ -35,6 +35,7 @@ public class FileLogRepository implements LogRepository {
                     .map(LogEntity::new)
                     .toList();
         }
+
     }
 
     @Override
