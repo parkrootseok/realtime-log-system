@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import styled from 'styled-components';
 import { Line } from 'react-chartjs-2';
 import { Box, Typography, ToggleButtonGroup, ToggleButton } from '@mui/material';
@@ -25,7 +25,26 @@ const TimeSeriesChart = ({
   onTimeUnitChange,
   source,
   hasData,
+  stats,
 }) => {
+  // stats 데이터와 시계열 데이터를 모두 고려하여 최대값 계산
+  const maxValue = useMemo(() => {
+    if (!stats) return 20;
+
+    const totalCount = source === 'realtime' ? stats.totalLogsCount : stats.totalCount;
+    if (!totalCount) return 20;
+
+    // 시계열 데이터의 최대값도 고려
+    const maxTimeSeriesValue =
+      timeSeriesData.length > 0 ? Math.max(...timeSeriesData.map((item) => item.total)) : 0;
+
+    // stats의 총 로그 수와 시계열 데이터의 최대값 중 큰 값을 사용
+    const baseMax = Math.max(totalCount, maxTimeSeriesValue);
+
+    // 최대값의 10% 여유를 추가하고 올림하여 적절한 스케일 설정
+    return Math.ceil(baseMax * 1.1);
+  }, [stats, source, timeSeriesData]);
+
   const timeChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -40,14 +59,23 @@ const TimeSeriesChart = ({
     scales: {
       y: {
         beginAtZero: true,
+        max: maxValue, // suggestedMax 대신 max를 사용하여 정확한 스케일 설정
         title: {
           display: true,
           text: '로그 수',
+        },
+        ticks: {
+          stepSize: Math.max(1, Math.floor(maxValue / 10)),
+          precision: 0,
         },
       },
       x: {
         title: {
           display: false,
+        },
+        grid: {
+          display: true,
+          drawBorder: true,
         },
       },
     },

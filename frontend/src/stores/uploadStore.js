@@ -33,10 +33,11 @@ const useUploadStore = create((set) => ({
       uploadError: null,
       filterError: null,
       filteredLogs: [],
-      stats: { totalCount: 0, infoCount: 0, errorCount: 0, warnCount: 0 },
+      stats: null,
       selectedLevels: ['ERROR', 'WARN', 'INFO'],
       page: 0,
       totalPages: 0,
+      logs: [],
     }),
 
   setUploadSuccess: (success) =>
@@ -67,6 +68,7 @@ const useUploadStore = create((set) => ({
     set({
       fileName,
       stats,
+      logs,
       filteredLogs: logs,
       uploadSuccess: true,
       uploadError: null,

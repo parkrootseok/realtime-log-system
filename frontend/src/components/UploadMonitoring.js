@@ -239,10 +239,7 @@ const UploadMonitoring = ({ uploadedFile, onUploadStatusChange }) => {
       {activeTab === 1 && (
         <>
           <StatsAndFilterWrapper>
-            <UploadLogStatus
-              totalCount={stats?.totalCount || 0}
-              errorCount={stats?.errorCount || 0}
-            />
+            <UploadLogStatus />
             <LogLevelFilter
               selectedLevels={selectedLevels}
               onToggle={handleTagToggle}
