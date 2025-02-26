@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Box, Typography, Grid } from '@mui/material';
 import styled from 'styled-components';
 import { Pie, Line } from 'react-chartjs-2';
@@ -13,7 +13,8 @@ import {
   LineElement,
   Title,
 } from 'chart.js';
-import useRealtimeStore from '../../stores/realtimeStore';
+import useDistributionStore from '../../stores/distributionStore';
+import useRealtimeLogStore from '../../stores/realtimeLogStore';
 
 ChartJS.register(
   ArcElement,
@@ -46,12 +47,16 @@ const ChartTitle = styled(Typography)`
 `;
 
 const RealtimeLogAnalysis = ({ logs = [], realtimeStats = null }) => {
+  // 분포 데이터 관련
   const {
     initDistributionSocket,
-    socket,
+    distributionSocket,
     realtimeDistribution,
-    setRealtimeDistribution: setGlobalRealtimeDistribution,
-  } = useRealtimeStore();
+    setRealtimeDistribution,
+  } = useDistributionStore();
+
+  // 실시간 로그 관련
+  const { initLogSocket, logSocket, realtimeLogs, addRealtimeLog } = useRealtimeLogStore();
 
   const hasData = !!realtimeStats || realtimeDistribution.length > 0;
 
@@ -118,7 +123,6 @@ const RealtimeLogAnalysis = ({ logs = [], realtimeStats = null }) => {
       return Object.values(timeData).sort((a, b) => a.time.localeCompare(b.time));
     }
 
-    // 데이터가 없는 경우 빈 시간대 생성
     const now = new Date();
     const timeData = {};
 
@@ -144,39 +148,102 @@ const RealtimeLogAnalysis = ({ logs = [], realtimeStats = null }) => {
   };
 
   useEffect(() => {
-    if (!socket) {
+    // 분포 데이터용 소켓
+    let currentDistributionSocket = distributionSocket;
+
+    if (!currentDistributionSocket) {
       const wsUrl = 'ws://localhost:8080/log/ws-distribution';
-      const newSocket = initDistributionSocket(wsUrl);
-
-      newSocket.onopen = () => {
-        newSocket.send(JSON.stringify({ type: 'logDistribution' }));
-      };
-
-      newSocket.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        console.log('📊 Received WebSocket data:', data);
-        if (data.distribution) {
-          const distributionData = Object.entries(data.distribution).map(([timestamp, counts]) => ({
-            timestamp,
-            counts,
-          }));
-          setGlobalRealtimeDistribution(distributionData);
-        }
-      };
+      currentDistributionSocket = initDistributionSocket(wsUrl);
     }
 
+    currentDistributionSocket.onopen = () => {
+      currentDistributionSocket.send(JSON.stringify({ type: 'logDistribution' }));
+    };
+
+    currentDistributionSocket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      console.log('📊 Distribution WebSocket data:', data);
+      if (data.distribution) {
+        const distributionData = Object.entries(data.distribution).map(([timestamp, counts]) => ({
+          timestamp,
+          counts,
+        }));
+        setRealtimeDistribution(distributionData);
+      }
+    };
+
+    // 분포 데이터 주기적 요청
     const intervalId = setInterval(() => {
-      if (socket && socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify({ type: 'logDistribution' }));
+      if (currentDistributionSocket && currentDistributionSocket.readyState === WebSocket.OPEN) {
+        currentDistributionSocket.send(JSON.stringify({ type: 'logDistribution' }));
       }
     }, 60 * 1000);
 
     return () => {
       clearInterval(intervalId);
     };
-  }, [socket, initDistributionSocket]);
+  }, [distributionSocket, initDistributionSocket, setRealtimeDistribution]);
 
-  const timeSeriesData = getTimeSeriesData();
+  useEffect(() => {
+    let currentLogSocket = logSocket;
+
+    if (!currentLogSocket) {
+      const wsUrl = 'ws://localhost:8080/logs-stream';
+      currentLogSocket = initLogSocket(wsUrl);
+    }
+
+    currentLogSocket.onopen = () => {};
+
+    currentLogSocket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+
+      if (data.level && data.timestamp) {
+        addRealtimeLog(data);
+
+        setRealtimeDistribution((prev) => {
+          const prevArray = Array.isArray(prev) ? prev : [];
+          const updatedDistribution = [...prevArray];
+          const existingIndex = updatedDistribution.findIndex(
+            (item) =>
+              new Date(item.timestamp).getMinutes() === new Date(data.timestamp).getMinutes()
+          );
+
+          if (existingIndex !== -1) {
+            const existing = updatedDistribution[existingIndex];
+            updatedDistribution[existingIndex] = {
+              timestamp: existing.timestamp,
+              counts: {
+                INFO: existing.counts.INFO + (data.info ? 1 : 0),
+                WARN: existing.counts.WARN + (data.warn ? 1 : 0),
+                ERROR: existing.counts.ERROR + (data.error ? 1 : 0),
+              },
+            };
+          } else {
+            updatedDistribution.push({
+              timestamp: data.timestamp,
+              counts: {
+                INFO: data.info ? 1 : 0,
+                WARN: data.warn ? 1 : 0,
+                ERROR: data.error ? 1 : 0,
+              },
+            });
+          }
+
+          return updatedDistribution;
+        });
+      }
+    };
+
+    return () => {
+      currentLogSocket.close();
+    };
+  }, [logSocket, initLogSocket, addRealtimeLog, setRealtimeDistribution]);
+
+  useEffect(() => {}, [realtimeDistribution]);
+
+  const timeSeriesData = useMemo(() => {
+    return getTimeSeriesData();
+  }, [realtimeDistribution, hasData]);
 
   const timeChartData = {
     labels: timeSeriesData.map((item) => item.time),
