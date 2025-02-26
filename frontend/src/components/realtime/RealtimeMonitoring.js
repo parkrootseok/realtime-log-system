@@ -62,12 +62,12 @@ const LogTable = React.memo(
           </TableHeaderRow>
         </TableHeader>
         <TableBody>
-          {logs.map((log) => {
+          {logs.map((log, index) => {
             const timestamp =
               typeof log.timestamp === 'string' ? new Date(log.timestamp) : log.timestamp;
 
             return (
-              <TableRow key={`${timestamp.getTime()}-${log.serviceName}-${log.message}`}>
+              <TableRow key={`${timestamp.getTime()}-${log.serviceName}-${log.message}-${index}`}>
                 <TableCell>{timestamp.toLocaleString()}</TableCell>
                 <TableCell>
                   <LogLevel $level={log.level}>{log.level}</LogLevel>
