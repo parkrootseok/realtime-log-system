@@ -234,7 +234,6 @@ const RealtimeMonitoring = ({ logs }) => {
 
         {activeTab === 2 && (
           <>
-            {filterError && <ErrorBox>{filterError}</ErrorBox>}
             <FilterWrapper>
               <LogLevelFilter
                 selectedLevels={selectedLevels}

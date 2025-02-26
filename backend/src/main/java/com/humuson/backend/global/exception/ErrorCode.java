@@ -29,7 +29,7 @@ public enum ErrorCode {
      * [404 Not Found]
      * - 존재하지 않는 자원
      */
-    NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 자원입니다."),
+    LOG_FILE_NOT_FOUND(HttpStatus.NOT_FOUND,  "로그 파일을 찾을 수 없습니다."),
 
 
     /**
