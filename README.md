@@ -17,9 +17,9 @@
     - [클라이언트](#클라이언트)
     - [서버](#서버)
     - [공통](#공통)
-  - [🚀 실행 방법](#-실행-방법)
-    - [1. 루드 디렉터리 이동](#1-루드-디렉터리-이동)
-    - [2. Docker Compose 실행](#2-docker-compose-실행)
+  - [1. 루트 디렉터리 이동](#1-루트-디렉터리-이동)
+  - [2. frontend 폴더로 이동 후 .env 파일 생성](#2-frontend-폴더로-이동-후-env-파일-생성)
+  - [3. Docker Compose 실행](#3-docker-compose-실행)
   - [📌 API 문서](#-api-문서)
     - [**1. POST /logs/upload**](#1-post-logsupload)
     - [**2. GET /logs/analyze**](#2-get-logsanalyze)
@@ -27,17 +27,18 @@
     - [**4. GET /logs/ws-stream**](#4-get-logsws-stream)
     - [**5. GET /logs/ws-distribution**](#5-get-logsws-distribution)
   - [💻 웹 UI 설명](#-웹-ui-설명)
+    - [실시간 로그 기반 (app.log 파일 사용)](#실시간-로그-기반-applog-파일-사용)
+    - [업로드 로그 기반 (사용자가 업로드한 로그 파일 사용)](#업로드-로그-기반-사용자가-업로드한-로그-파일-사용)
   - [🤖 AI 도구 활용](#-ai-도구-활용)
     - [클라이언트](#클라이언트-1)
       - [1. Cursor AI 기반 프론트엔드 초기 설정](#1-cursor-ai-기반-프론트엔드-초기-설정)
       - [2. 페이지 디자인 구현](#2-페이지-디자인-구현)
-      - [3. 문제 해결](#3-문제-해결)
-      - [4. 마이그레이션](#4-마이그레이션)
+      - [3. 마이그레이션](#3-마이그레이션)
     - [서버](#서버-1)
       - [1. 효율적인 코드 작성](#1-효율적인-코드-작성)
+      - [2. 기존 코드 개선 사항 도출](#2-기존-코드-개선-사항-도출)
     - [공통](#공통-1)
       - [1. 효율적인 문서화](#1-효율적인-문서화)
-  - [📸 스크린샷](#-스크린샷)
 
 ## 📋 프로젝트 개요
 
@@ -96,6 +97,7 @@ Spring Boot 기반 로그 분석 시스템과 React 대시보드를 구현하여
 | :--------------- | :------------------------------------------------------------------------------------------------------------------------------------ |
 | Framework        | <img src="https://img.shields.io/badge/react-61DAFB?style=for-the-badge&logo=react&logoColor=black">                                  |
 | Language         | <img src="https://img.shields.io/badge/javascript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black"/>                       |
+| Styling          | <img src="https://img.shields.io/badge/styled%20components-DB7093?style=for-the-badge&logo=styledcomponents&logoColor=white">         |
 | State Management | <img src="https://img.shields.io/badge/zustanrd-5B4638?style=for-the-badge&logoColor=white">                                          |
 | IDE              | <img src="https://img.shields.io/badge/Visual%20Studio%20Code-0078d7.svg?style=for-the-badge&logo=visualstudiocode&logoColor=white"/> |
 
@@ -114,17 +116,30 @@ Spring Boot 기반 로그 분석 시스템과 React 대시보드를 구현하여
 | Version Control | <img src="https://img.shields.io/badge/git-F05032?style=for-the-badge&logo=git&logoColor=white"/> <img src="https://img.shields.io/badge/github-181717?style=for-the-badge&logo=github&logoColor=white"/>               |
 | Copilot         | <img src="https://img.shields.io/badge/openai-412991.svg?style=for-the-badge&logo=openai&logoColor=white"/> <img src="https://img.shields.io/badge/Cursor-181717.svg?style=for-the-badge&logo=Cursor&logoColor=white"/> |
 
-## 🚀 실행 방법
+## 1. 루트 디렉터리 이동
 
-### 1. 루드 디렉터리 이동
-
-```
+```bash
 cd humuson-assignment
 ```
 
-### 2. Docker Compose 실행
+## 2. frontend 폴더로 이동 후 .env 파일 생성
 
+```bash
+cd frontend
 ```
+
+```bash
+echo "REACT_APP_API_URL=http://localhost:8080" >> .env
+echo "REACT_APP_WS_URL=ws://localhost:8080" >> .env
+```
+
+```bash
+cd ..
+```
+
+## 3. Docker Compose 실행
+
+```bash
 docker compose up -d --build
 ```
 
@@ -256,11 +271,25 @@ docker compose up -d --build
 
 ## 💻 웹 UI 설명
 
-> 대시보드 구성, 테이블/차트, 검색 및 필터링 등 UI 구성 요소에 대해 작성하세요.
+### 실시간 로그 기반 (app.log 파일 사용)
+
+|                                                 로그 분석                                                  |                                 실시간 로그 조회                                  |                                   로그 필터링                                    |
+| :--------------------------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------: | :------------------------------------------------------------------------------: |
+|                     <img width="100%" src="./screenshots/실시간로그분석_로그분석.png">                     |     <img width="100%" src="./screenshots/실시간로그분석_실시간로그조회.png">      |       <img width="100%" src="./screenshots/실시간로그분석_로그필터링.png">       |
+| **app.log 파일을 기준으로 레벨(INFO, ERROR, WARN)에 대한 통계 및 비율과 실시간 로그 발생량을 보여줍니다.** | **가장 최근에 발생한 20개의 로그를 조회할 수 있으며, 실시간으로 업데이트됩니다.** | **특정 조건(INFO, ERROR, WARN 등)에 맞는 로그를 필터링하여 조회할 수 있습니다.** |
+
+### 업로드 로그 기반 (사용자가 업로드한 로그 파일 사용)
+
+|                                  업로드 전                                  |                                           로그 분석 조회                                            |                                       전체 로그 조회                                        |
+| :-------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------: |
+|     <img width="100%" src="./screenshots/업로드로그분석_업로드전.png">      |                 <img width="100%" src="./screenshots/업로드로그분석_로그분석.png">                  |           <img width="100%" src="./screenshots/업로드로그분석_전체로그조회.png">            |
+| **로그 파일을 업로드하기 전의 화면으로, 분석할 파일을 선택할 수 있습니다.** | **업로드한 로그 파일을 기준으로 레벨(INFO, ERROR, WARN)에 대한 통계 및 비율을 확인할 수 있습니다.** | **업로드한 로그의 전체 내용을 조회할 수 있으며, 시간순으로 정렬된 로그 목록을 제공합니다.** |
 
 ## 🤖 AI 도구 활용
 
 ### 클라이언트
+
+> 프론트엔드 개발이 미숙하기 때문에, 커서 AI를 활용하여 개발 수행.
 
 #### 1. Cursor AI 기반 프론트엔드 초기 설정
 
@@ -284,30 +313,30 @@ docker compose up -d --build
 -   **디자인 구현**
     로그 모니터링 서비스라는 점을 명시하여, 이에 맞는 디자인 적용
 
-#### 3. 문제 해결
-
--   **파일 업로드 시 중복 호출 문제 해결**
-    상태 관리 문제로 인한, 파일 업로드 중복 호출 문제 해결에 사용
-
-#### 4. 마이그레이션
+#### 3. 마이그레이션
 
 -   **상태 관리 라이브러리 마이그레이션**
     React 기본 상태 관리에서 Zustand 라이브러리로 마이그레이션 수행
 
 ### 서버
 
+> 상대적으로 개발 역량이 높은 서버는 기초 작성하고, 이를 토대로 개선하기 위해 활용.
+
 #### 1. 효율적인 코드 작성
 
 -   **빠르게 초기 구현 후, Chat GPT를 활용하여 리팩토링 수행**  
     초기에는 모든 로직을 Controller에 집중 구현한 후, 클린 아키텍처 원칙을 적용하여 코드 리팩토링
+-   **메소드 및 변수 명 설정**
+
+#### 2. 기존 코드 개선 사항 도출
+
+-   **성능 최적화 및 코드 가독성 향상 등**
 
 ### 공통
+
+> 문서화, 커밋 메시지, PR 등 작업 내용 정리 및 문서 작성에 활용.
 
 #### 1. 효율적인 문서화
 
 -   **미리 정의한 PR, ISSUE 템플릿을 참고하여 작업 내용 작성**
--   **개발 진행 중간에 README.md 파일 수정 사항 반영**
-
-## 📸 스크린샷
-
-> 프로젝트 실행 화면 캡처 이미지 및 설명을 여기에 작성하세요.
+-   **개발 진행 사항을 README.md로 반영**
