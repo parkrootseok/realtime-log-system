@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { logService } from '../services/api';
-import StatusItem from './common/StatusItem';
-import useRealtimeStore from '../stores/realtimeStore';
+import { logService } from '../../services/api';
+import StatusItem from '../common/status/StatusItem';
+import useRealtimeStore from '../../stores/realtimeStore';
 
 const StatusWrapper = styled.div`
   display: flex;
@@ -68,7 +68,7 @@ const RefreshIcon = () => (
 const RealtimeLogStatus = ({ stats, lastUpdate, onStatsChange }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [timeString, setTimeString] = useState('방금 전');
-  
+
   // 전역 상태에서 로그 통계 가져오기
   const { logStats, updateLogStats } = useRealtimeStore();
 
@@ -135,11 +135,7 @@ const RealtimeLogStatus = ({ stats, lastUpdate, onStatsChange }) => {
   return (
     <StatusWrapper>
       <StatusItem label="전체 로그" value={effectiveStats.totalLogsCount.toLocaleString()} />
-      <StatusItem
-        label="에러"
-        value={effectiveStats.errorCount.toLocaleString()}
-        type="error"
-      />
+      <StatusItem label="에러" value={effectiveStats.errorCount.toLocaleString()} type="error" />
       <UpdateTimeWrapper>
         <UpdateTime>마지막 갱신: {timeString}</UpdateTime>
         <RefreshButton onClick={handleRefresh} disabled={refreshing}>

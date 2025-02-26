@@ -110,3 +110,17 @@ export const EmptyState = styled.div`
   font-size: 14px;
   background: #ffffff;
 `;
+
+const renderLogTable = (logsData) => (
+  <TableContainer>
+    <TableHeader>
+      <TableHeaderRow>
+        <div>타임스탬프</div>
+        <div>레벨</div>
+        <div>서비스</div>
+        <div>메시지</div>
+      </TableHeaderRow>
+    </TableHeader>
+    {/* ... 테이블 바디 ... */}
+  </TableContainer>
+);

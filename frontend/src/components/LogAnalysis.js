@@ -1,6 +1,6 @@
 import React from 'react';
-import RealtimeLogAnalysis from './analysis/RealtimeLogAnalysis';
-import UploadLogAnalysis from './analysis/UploadLogAnalysis';
+import RealtimeLogAnalysis from './realtime/RealtimeLogAnalysis';
+import UploadLogAnalysis from './upload/UploadLogAnalysis';
 
 const LogAnalysis = ({ logs = [], source = 'upload', realtimeStats = null }) => {
   if (source === 'realtime') {

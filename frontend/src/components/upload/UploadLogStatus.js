@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
-import StatusItem from './common/StatusItem';
-import useUploadStore from '../stores/uploadStore';
+import StatusItem from '../common/status/StatusItem';
+import useUploadStore from '../../stores/uploadStore';
 
 const StatusWrapper = styled.div`
   display: flex;

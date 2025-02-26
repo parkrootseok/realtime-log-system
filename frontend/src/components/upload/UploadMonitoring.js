@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Typography, Tabs, Tab, Pagination } from '@mui/material';
 import styled from 'styled-components';
-import { logService } from '../services/api';
+import { logService } from '../../services/api';
 import {
   TableContainer,
   TableHeader,
@@ -9,12 +9,12 @@ import {
   TableRow,
   TableCell,
   TableBody,
-} from './common/Table';
-import { LogLevel } from './common/LogLevel';
+} from '../common/table/Table';
+import { LogLevel } from '../common/loglevel/LogLevel';
 import UploadLogStatus from './UploadLogStatus';
-import LogLevelFilter from './common/LogLevelFilter';
-import LogAnalysis from './LogAnalysis';
-import useUploadStore from '../stores/uploadStore';
+import LogLevelFilter from '../common/loglevel/LogLevelFilter';
+import LogAnalysis from '../LogAnalysis';
+import useUploadStore from '../../stores/uploadStore';
 
 const MonitoringContainer = styled.div`
   background: #ffffff;

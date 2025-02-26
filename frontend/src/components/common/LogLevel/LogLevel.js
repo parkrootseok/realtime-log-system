@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 import { LOG_LEVEL_STYLES } from '../../../constants/logLevels';
 
-export const LogLevelWrapper = styled.span`
+export const LogLevel = styled.span`
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 12px;
@@ -39,13 +39,7 @@ export const FilterTag = styled.div`
   }
 `;
 
-const LogLevel = ({ level, children }) => {
-  return <LogLevelWrapper $level={level}>{children}</LogLevelWrapper>;
-};
-
 export const getLevelDotColor = (level) => {
   const style = LOG_LEVEL_STYLES[level] || LOG_LEVEL_STYLES.DEFAULT;
   return style.dotColor;
 };
-
-export default LogLevel;

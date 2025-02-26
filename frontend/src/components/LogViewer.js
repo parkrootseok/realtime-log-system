@@ -1,12 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import styled from 'styled-components';
-import { logService } from '../services/api';
-import RealtimeMonitoring from './RealtimeMonitoring';
-import UploadMonitoring from './UploadMonitoring';
+import RealtimeMonitoring from './realtime/RealtimeMonitoring';
+import UploadMonitoring from './upload/UploadMonitoring';
 import useUIStore from '../stores/uiStore';
 import useUploadStore from '../stores/uploadStore';
 import useRealtimeStore from '../stores/realtimeStore';
-import { parseLogString } from '../utils/logParser';
 
 const LogContainer = styled.div`
   padding: 32px 48px;
