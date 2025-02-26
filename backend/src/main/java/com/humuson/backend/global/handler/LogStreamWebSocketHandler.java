@@ -2,6 +2,7 @@ package com.humuson.backend.global.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.humuson.backend.application.log.usecase.LogUseCase;
 import com.humuson.backend.domain.log.model.dto.response.LogDistributionResponseDto;
 import com.humuson.backend.domain.log.model.entity.LogEntity;
 import com.humuson.backend.domain.log.service.LogService;
@@ -23,7 +24,7 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 @RequiredArgsConstructor
 public class LogStreamWebSocketHandler extends TextWebSocketHandler {
 
-    private final LogService logService;
+    private final LogUseCase logUseCase;
     private final ObjectMapper objectMapper = new ObjectMapper().registerModule(
             new JavaTimeModule());
     private final List<WebSocketSession> sessions = new CopyOnWriteArrayList<>();
@@ -46,7 +47,7 @@ public class LogStreamWebSocketHandler extends TextWebSocketHandler {
 
     private void sendInitialLogs(WebSocketSession session) {
         try {
-            List<LogEntity> logs = logService.readLastNLogs(null, 20); // 최신 20개만 가져오기
+            List<LogEntity> logs = logUseCase.getLastNLogs("app.log", 20); // 최신 20개만 가져오기
             session.sendMessage(new TextMessage(objectMapper.writeValueAsString(logs)));
         } catch (IOException e) {
             log.error("초기 로그 전송 중 오류 발생: {}", e.getMessage());
@@ -59,12 +60,11 @@ public class LogStreamWebSocketHandler extends TextWebSocketHandler {
                 LogEntity lastSentLog = null;
                 while (session.isOpen()) {
                     Thread.sleep(Duration.ofSeconds(9).toMillis());
-                    List<LogEntity> latestLogList = logService.readLastNLogs(null, 1);
+                    List<LogEntity> latestLogList = logUseCase.getLastNLogs("app.log", 1);
                     if (!latestLogList.isEmpty()) {
                         LogEntity latestLog = latestLogList.get(0);
                         if (!latestLog.equals(lastSentLog)) {
-                            session.sendMessage(
-                                    new TextMessage(objectMapper.writeValueAsString(latestLog)));
+                            session.sendMessage(new TextMessage(objectMapper.writeValueAsString(latestLog)));
                             lastSentLog = latestLog;
                         }
                     }
