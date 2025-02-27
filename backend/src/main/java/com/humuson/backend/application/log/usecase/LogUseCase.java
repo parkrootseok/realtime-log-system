@@ -45,7 +45,7 @@ public class LogUseCase {
      */
     public GetCountLogResponse analyzeLogLevels(String levels) {
         List<Level> parsedLevels = Level.parseLevels(levels);
-        List<LogEntity> logs = logQueryService.getLogsByLevel(parsedLevels);
+        List<LogEntity> logs = logQueryService.getLogsInLevel(parsedLevels);
         Map<Level, Long> counts = logAnalysisService.getLogsCountByLevel(logs, parsedLevels);
         return GetCountLogResponse.of(
                 logs.size(),
@@ -92,7 +92,7 @@ public class LogUseCase {
     public GetFilteredLogResponse filterLogsByLevel(String levels, int page, int size) {
         List<Level> parsedLevels = Level.parseLevels(levels);
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "timestamp"));
-        Page<LogEntity> filteredLogs = logQueryService.getLogsByLevelOrderByTimeStampDesc(parsedLevels, pageable);
+        Page<LogEntity> filteredLogs = logQueryService.getPaginatedLogsInLevel(parsedLevels, pageable);
         return GetFilteredLogResponse.of(filteredLogs.getContent(), filteredLogs.getNumber(), filteredLogs.getSize(), filteredLogs.getTotalElements());
     }
 

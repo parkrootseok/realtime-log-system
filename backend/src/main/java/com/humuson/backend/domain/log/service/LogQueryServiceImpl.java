@@ -35,12 +35,12 @@ public class LogQueryServiceImpl implements LogQueryService {
     }
 
     @Override
-    public List<LogEntity> getLogsByLevel(List<Level> levels) {
+    public List<LogEntity> getLogsInLevel(List<Level> levels) {
         return logRepository.findAllByLevelIn(levels);
     }
 
     @Override
-    public Page<LogEntity> getLogsByLevelOrderByTimeStampDesc(List<Level> levels, Pageable pageable) {
+    public Page<LogEntity> getPaginatedLogsInLevel(List<Level> levels, Pageable pageable) {
         return logRepository.findAllByLevelIn(levels, pageable);
     }
 

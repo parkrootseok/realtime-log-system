@@ -22,9 +22,9 @@ public interface LogQueryService {
      */
     List<LogEntity> getLogs();
 
-    List<LogEntity> getLogsByLevel(List<Level> levels);
+    List<LogEntity> getLogsInLevel(List<Level> levels);
 
-    Page<LogEntity> getLogsByLevelOrderByTimeStampDesc(List<Level> levels, Pageable pageable);
+    Page<LogEntity> getPaginatedLogsInLevel(List<Level> levels, Pageable pageable);
 
     /**
      * 특정 로그 파일에서 최신 로그를 지정된 개수만큼 조회
