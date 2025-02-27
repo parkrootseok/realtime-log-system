@@ -1,7 +1,6 @@
 import React from 'react';
-import { Box, Typography, Grid } from '@mui/material';
+import { Box, Grid, Typography } from '@mui/material';
 import styled from 'styled-components';
-import { Pie, Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   ArcElement,
@@ -13,6 +12,10 @@ import {
   Title,
 } from 'chart.js';
 import useUploadStore from '../../stores/uploadStore';
+import LogPieChart from '../common/charts/LogPieChart';
+import StatsOverview from '../common/stats/StatsOverview';
+import { ChartContainer, ChartTitle } from '../common/charts/ChartStyles';
+import { Bar } from 'react-chartjs-2';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
@@ -20,40 +23,16 @@ const AnalysisContainer = styled.div`
   margin-top: 20px;
 `;
 
-const ChartContainer = styled.div`
-  background: #f9fafb;
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 20px;
-  height: 300px;
-  display: flex;
-  flex-direction: column;
-`;
-
-const ChartTitle = styled(Typography)`
-  margin-bottom: 16px;
-  font-weight: 600;
-`;
-
 const UploadLogAnalysis = ({ logs = [] }) => {
   const uploadStats = useUploadStore((state) => state.stats);
   const uploadedFile = useUploadStore((state) => state.uploadedFile);
   const hasData = !!uploadedFile;
 
+  // 파이 차트용 데이터 포맷 변환
   const pieChartData = {
-    labels: ['INFO', 'WARN', 'ERROR'],
-    datasets: [
-      {
-        data: [
-          uploadStats?.infoCount || 0,
-          uploadStats?.warnCount || 0,
-          uploadStats?.errorCount || 0,
-        ],
-        backgroundColor: ['#3b82f6', '#f59e0b', '#ef4444'],
-        borderColor: ['#2563eb', '#d97706', '#dc2626'],
-        borderWidth: 1,
-      },
-    ],
+    infoCount: uploadStats?.infoCount || 0,
+    warnCount: uploadStats?.warnCount || 0,
+    errorCount: uploadStats?.errorCount || 0,
   };
 
   const barChartData = {
@@ -91,33 +70,15 @@ const UploadLogAnalysis = ({ logs = [] }) => {
 
   const totalCount = uploadStats?.totalCount || 0;
   const errorRatio =
-    hasData && totalCount ? Math.round(((uploadStats?.errorCount || 0) / totalCount) * 100) : 0;
+    hasData && totalCount ? Math.round((uploadStats?.errorCount / totalCount) * 100) : 0;
   const warnRatio =
-    hasData && totalCount ? Math.round(((uploadStats?.warnCount || 0) / totalCount) * 100) : 0;
+    hasData && totalCount ? Math.round((uploadStats?.warnCount / totalCount) * 100) : 0;
 
   return (
     <AnalysisContainer>
       <Grid container spacing={3}>
         <Grid item xs={12} md={6}>
-          <ChartContainer>
-            <ChartTitle variant="h6">레벨 분포</ChartTitle>
-            <Box
-              sx={{
-                height: '100%',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}
-            >
-              {hasData ? (
-                <Pie data={pieChartData} options={{ maintainAspectRatio: false }} />
-              ) : (
-                <Typography variant="body1" color="text.secondary">
-                  파일을 업로드하면 로그 레벨 분포가 표시됩니다.
-                </Typography>
-              )}
-            </Box>
-          </ChartContainer>
+          <LogPieChart data={pieChartData} />
         </Grid>
 
         <Grid item xs={12} md={6}>
@@ -145,64 +106,7 @@ const UploadLogAnalysis = ({ logs = [] }) => {
         </Grid>
 
         <Grid item xs={12}>
-          <Box sx={{ background: '#f9fafb', borderRadius: '8px', padding: '20px' }}>
-            <Typography variant="h6" sx={{ marginBottom: '16px', fontWeight: 600 }}>
-              통계 요약
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={4}>
-                <Box
-                  sx={{
-                    textAlign: 'center',
-                    padding: '16px',
-                    background: '#fff',
-                    borderRadius: '8px',
-                  }}
-                >
-                  <Typography variant="body2" color="text.secondary">
-                    총 로그 수
-                  </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                    {totalCount.toLocaleString()}
-                  </Typography>
-                </Box>
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <Box
-                  sx={{
-                    textAlign: 'center',
-                    padding: '16px',
-                    background: '#fff',
-                    borderRadius: '8px',
-                  }}
-                >
-                  <Typography variant="body2" color="text.secondary">
-                    에러 비율
-                  </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                    {errorRatio}%
-                  </Typography>
-                </Box>
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <Box
-                  sx={{
-                    textAlign: 'center',
-                    padding: '16px',
-                    background: '#fff',
-                    borderRadius: '8px',
-                  }}
-                >
-                  <Typography variant="body2" color="text.secondary">
-                    경고 비율
-                  </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                    {warnRatio}%
-                  </Typography>
-                </Box>
-              </Grid>
-            </Grid>
-          </Box>
+          <StatsOverview totalCount={totalCount} errorRatio={errorRatio} warnRatio={warnRatio} />
         </Grid>
       </Grid>
     </AnalysisContainer>

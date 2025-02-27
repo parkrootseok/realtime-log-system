@@ -3,6 +3,7 @@ import LogViewer from './components/LogViewer';
 import { createGlobalStyle } from 'styled-components';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import useRealtimeStore from './stores/realtimeStore';
+import './utils/chartSetup'; // Chart.js 설정 import
 
 const GlobalStyle = createGlobalStyle`
   body {
@@ -24,7 +25,6 @@ function App() {
   const { resetRealtimeState } = useRealtimeStore();
 
   useEffect(() => {
-
     const handleBeforeUnload = () => {
       resetRealtimeState();
     };

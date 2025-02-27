@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 
-const StyledStatusItem = styled.div`
+const StyledLogLevelCountBox = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
@@ -24,11 +24,11 @@ const StatusValue = styled.span`
   color: ${(props) => (props.$type === 'error' ? '#DC2626' : '#3B82F6')};
 `;
 
-const StatusItem = ({ label, value, type }) => (
-  <StyledStatusItem $type={type}>
+const LogLevelCountBox = ({ label, value, type }) => (
+  <StyledLogLevelCountBox $type={type}>
     <StatusLabel>{label}</StatusLabel>
     <StatusValue $type={type}>{value}</StatusValue>
-  </StyledStatusItem>
+  </StyledLogLevelCountBox>
 );
 
-export default StatusItem;
+export default LogLevelCountBox;

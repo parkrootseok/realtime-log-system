@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { logService } from '../../services/api';
-import StatusItem from '../common/status/StatusItem';
+import LogLevelCountBox from '../common/loglevel/LogLevelCountBox';
 import useRealtimeStore from '../../stores/realtimeStore';
 
 const StatusWrapper = styled.div`
@@ -125,8 +125,12 @@ const RealtimeLogStatus = ({ stats, lastUpdate, onStatsChange }) => {
 
   return (
     <StatusWrapper>
-      <StatusItem label="전체 로그" value={effectiveStats.totalLogsCount.toLocaleString()} />
-      <StatusItem label="에러" value={effectiveStats.errorCount.toLocaleString()} type="error" />
+      <LogLevelCountBox label="전체 로그" value={effectiveStats.totalLogsCount.toLocaleString()} />
+      <LogLevelCountBox
+        label="에러"
+        value={effectiveStats.errorCount.toLocaleString()}
+        type="error"
+      />
       <UpdateTimeWrapper>
         <UpdateTime>마지막 갱신: {timeString}</UpdateTime>
         <RefreshButton onClick={handleRefresh} disabled={refreshing}>
