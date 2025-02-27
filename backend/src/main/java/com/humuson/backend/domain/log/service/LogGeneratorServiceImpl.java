@@ -1,46 +1,64 @@
 package com.humuson.backend.domain.log.service;
 
+import static com.humuson.backend.global.constant.Format.TIMESTAMP_FORMAT;
+
+import com.humuson.backend.domain.log.model.entity.Level;
+import com.humuson.backend.domain.log.model.entity.LogEntity;
+import com.humuson.backend.infrastructure.log.repository.LogRepository;
+import com.humuson.backend.infrastructure.log.repository.MongoLogRepository;
+import java.time.LocalDateTime;
 import java.util.Random;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-/**
- * 로그 생성 서비스 구현체
- * - 일정 주기로 랜덤 로그를 생성하는 기능을 수행
- */
 @Slf4j
 @Service
-public class LogGeneratorServiceImpl implements LogGeneratorService {
+@RequiredArgsConstructor
+public class LogGeneratorServiceImpl {
 
-    private static final Random RANDOM = new Random(); // 랜덤 객체 생성
-    private static final String[] SERVICES = {"UserService", "PaymentService", "InventoryService"}; // 서비스 이름 목록
+    private static final Random RANDOM = new Random();
+    private static final String[] SERVICES = {"UserService", "PaymentService", "InventoryService"};
 
-    /**
-     * 일정 주기로 로그를 생성하는 메서드
-     * - `INFO`: 사용자 로그인 성공
-     * - `WARN`: 재고 부족 경고
-     * - `ERROR`: 결제 실패
-     *
-     * `@Scheduled(fixedRate = 10000)`을 사용하여 10초마다 실행됨
-     */
-    @Override
+    private final MongoLogRepository logRepository;
+
     @Scheduled(fixedRate = 10000)
     public void generateLog() {
-        String service = SERVICES[RANDOM.nextInt(SERVICES.length)]; // 랜덤 서비스 선택
-        int logType = RANDOM.nextInt(3); // 로그 유형 선택 (0: INFO, 1: WARN, 2: ERROR)
 
+        String serviceName = SERVICES[RANDOM.nextInt(SERVICES.length)];
+        int logType = RANDOM.nextInt(3);
+
+        String level;
+        String msg;
         switch (logType) {
-            case 0:
-                log.info("[{}] - User login successful: user{}", service, RANDOM.nextInt(1000));
-                break;
-            case 1:
-                log.warn("[{}] - Low stock warning for item: A{}", service, RANDOM.nextInt(9999));
-                break;
-            case 2:
-                log.error("[{}] - Payment failed for order: {}", service, RANDOM.nextInt(100000));
-                break;
+            case 0 -> {
+                level = "INFO";
+                msg = "User login successful: user" + RANDOM.nextInt(1000);
+            }
+            case 1 -> {
+                level = "WARN";
+                msg = "Low stock warning for item: A" + RANDOM.nextInt(9999);
+            }
+            default -> {
+                level = "ERROR";
+                msg = "Payment failed for order: " + RANDOM.nextInt(100000);
+            }
         }
+
+        logRepository.save(LogEntity.builder()
+                .timestamp(LocalDateTime.now().format(TIMESTAMP_FORMAT))
+                .level(Level.fromString(level))
+                .serviceName(serviceName)
+                .message(msg)
+                .build());
+
+        switch (level) {
+            case "INFO" -> log.info("[{}] - {}", serviceName, msg);
+            case "WARN" -> log.warn("[{}] - {}", serviceName, msg);
+            case "ERROR" -> log.error("[{}] - {}", serviceName, msg);
+        }
+
     }
 
 }

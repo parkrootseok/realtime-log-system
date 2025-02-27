@@ -60,9 +60,9 @@ public class LogAnalysisServiceImpl implements LogAnalysisService {
     public Map<String, Map<Level, Long>> getLogsGroupByMinute(List<LogEntity> logs) {
         return logs.stream()
                 .collect(Collectors.groupingBy(
-                        this::extractMinute, // 분 단위로 로그 그룹화
-                        java.util.TreeMap::new, // 정렬된 TreeMap 사용
-                        Collectors.groupingBy(LogEntity::getLevel, Collectors.counting()) // 레벨별 로그 개수 집계
+                        this::extractMinute,
+                        java.util.TreeMap::new,
+                        Collectors.groupingBy(LogEntity::getLevel, Collectors.counting())
                 ));
     }
 

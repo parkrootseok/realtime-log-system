@@ -15,7 +15,7 @@ public interface MongoLogRepository extends MongoRepository<LogEntity, String> {
 
     Page<LogEntity> findAllByLevelIn(List<Level> levels, Pageable pageable);
 
-    List<LogEntity> findAllByOrderByTimestampDesc(Pageable pageable);
+    Page<LogEntity> findAll(Pageable pageable);
 
     List<LogEntity> findAllByTimestampBetween(String start, String end);
 

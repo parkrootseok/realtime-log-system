@@ -17,17 +17,15 @@ public class LogEntity {
     private String id;
     private String timestamp;
     private Level level;
-    private String className;
     private String serviceName;
     private String message;
 
     @Builder
-    public LogEntity(Map<String, String> parsedLog) {
-        this.timestamp = parsedLog.get("timestamp");
-        this.level = Level.fromString(parsedLog.get("level"));
-        this.className = parsedLog.get("className");
-        this.serviceName = parsedLog.get("serviceName");
-        this.message = parsedLog.get("message");
+    public LogEntity(String timestamp, Level level, String serviceName, String message) {
+        this.timestamp = timestamp;
+        this.level = level;
+        this.serviceName = serviceName;
+        this.message = message;
     }
 
     public boolean isInfo() {
@@ -40,11 +38,6 @@ public class LogEntity {
 
     public boolean isError() {
         return this.level == Level.ERROR;
-    }
-
-    @Override
-    public String toString() {
-        return String.format("[%s] %s - %s - %s - %s", timestamp, level, className, serviceName, message);
     }
 
 }

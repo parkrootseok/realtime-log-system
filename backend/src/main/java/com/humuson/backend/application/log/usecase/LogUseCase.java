@@ -16,6 +16,8 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -75,7 +77,8 @@ public class LogUseCase {
      * @throws IOException 파일 처리 중 오류 발생 시 예외 발생
      */
     public List<LogEntity> getRecentLogsByLimit(int limit) throws IOException {
-        return logQueryService.getRecentLogsByLimit(PageRequest.of(0, limit));
+        Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "timestamp"));
+        return logQueryService.getRecentLogsByLimit(pageable);
     }
 
     /**
@@ -88,7 +91,8 @@ public class LogUseCase {
      */
     public GetFilteredLogResponse filterLogsByLevel(String levels, int page, int size) {
         List<Level> parsedLevels = Level.parseLevels(levels);
-        Page<LogEntity> filteredLogs = logQueryService.getLogsByLevelOrderByTimeStampDesc(parsedLevels, PageRequest.of(page, size));
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "timestamp"));
+        Page<LogEntity> filteredLogs = logQueryService.getLogsByLevelOrderByTimeStampDesc(parsedLevels, pageable);
         return GetFilteredLogResponse.of(filteredLogs.getContent(), filteredLogs.getNumber(), filteredLogs.getSize(), filteredLogs.getTotalElements());
     }
 

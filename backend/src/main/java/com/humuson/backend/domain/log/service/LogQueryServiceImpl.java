@@ -51,7 +51,7 @@ public class LogQueryServiceImpl implements LogQueryService {
      */
     @Override
     public List<LogEntity> getRecentLogsByLimit(Pageable pageable) {
-        return logRepository.findAllByOrderByTimestampDesc(pageable);
+        return logRepository.findAll(pageable).getContent();
     }
 
     /**
