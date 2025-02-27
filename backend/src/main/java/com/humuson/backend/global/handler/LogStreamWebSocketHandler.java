@@ -62,7 +62,7 @@ public class LogStreamWebSocketHandler extends TextWebSocketHandler {
      */
     private void sendInitialLogs(WebSocketSession session) {
         try {
-            List<LogEntity> logs = logUseCase.getRecentLogsByLimit("app.log", 20); // 최신 20개만 가져오기
+            List<LogEntity> logs = logUseCase.getRecentLogsByLimit(20); // 최신 20개만 가져오기
             session.sendMessage(new TextMessage(objectMapper.writeValueAsString(logs)));
         } catch (IOException e) {
             log.error("초기 로그 전송 중 오류 발생: {}", e.getMessage());
@@ -81,7 +81,7 @@ public class LogStreamWebSocketHandler extends TextWebSocketHandler {
                 LogEntity lastSentLog = null;
                 while (session.isOpen()) {
                     Thread.sleep(Duration.ofSeconds(9).toMillis());
-                    List<LogEntity> latestLogList = logUseCase.getRecentLogsByLimit("app.log", 1);
+                    List<LogEntity> latestLogList = logUseCase.getRecentLogsByLimit(1);
                     if (!latestLogList.isEmpty()) {
                         LogEntity latestLog = latestLogList.get(0);
                         if (!latestLog.equals(lastSentLog)) {

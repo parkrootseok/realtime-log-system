@@ -33,10 +33,10 @@ public class LogController {
      */
     @GetMapping("/analyze")
     public Result<GetCountLogResponse> getAnalyzeLogByLevel(
-            @RequestParam(defaultValue = "app.log") String fileName,
+            @RequestParam(required = false) String fileName,
             @RequestParam(required = false) String levels
-    ) throws IOException {
-        return Result.of(logUseCase.analyzeLogLevels(fileName, levels));
+    ) {
+        return Result.of(logUseCase.analyzeLogLevels(levels));
     }
 
     /**
@@ -51,12 +51,12 @@ public class LogController {
      */
     @GetMapping("/errors")
     public Result<GetFilteredLogResponse> getFilteredLogs(
-            @RequestParam(defaultValue = "app.log") String fileName,
+            @RequestParam(required = false) String fileName,
             @RequestParam(required = false) String levels,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
-    ) throws IOException {
-        return Result.of(logUseCase.filterLogsByLevel(fileName, levels, page, size));
+    ) {
+        return Result.of(logUseCase.filterLogsByLevel(levels, page, size));
     }
 
     /**

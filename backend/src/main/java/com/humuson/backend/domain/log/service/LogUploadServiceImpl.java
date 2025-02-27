@@ -19,7 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class LogUploadServiceImpl implements LogUploadService {
 
-    private final LogRepository logRepository; // 로그 파일 저장을 담당하는 저장소
+    private final LogRepository logRepository;
 
     /**
      * 업로드된 로그 파일을 저장

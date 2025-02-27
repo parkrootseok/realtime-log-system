@@ -21,7 +21,7 @@ public interface LogAnalysisService {
      * @param levels 분석할 로그 레벨 (예: "ERROR,WARN,INFO")
      * @return 로그 레벨별 개수를 매핑한 Map
      */
-    Map<Level, Long> getLogsCountByLevel(List<LogEntity> logs, String levels);
+    Map<Level, Long> getLogsCountByLevel(List<LogEntity> logs, List<Level> levels);
 
     /**
      * 특정 로그 레벨에 해당하는 로그만 필터링하여 반환

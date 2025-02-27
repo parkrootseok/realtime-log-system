@@ -4,3 +4,12 @@ server:
 spring:
   application:
     name: humuson
+
+  docker:
+    compose:
+      file: 'docker-compose.yml'
+      lifecycle-management: start_only
+
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/logs

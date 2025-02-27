@@ -1,17 +1,20 @@
 package com.humuson.backend.domain.log.model.entity;
 
-import static com.humuson.backend.global.util.LogParseUtil.parseLog;
-
 import java.util.Map;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 @Getter
+@Document(collection = "logs")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class LogEntity {
 
+    @Id
+    private String id;
     private String timestamp;
     private Level level;
     private String className;
