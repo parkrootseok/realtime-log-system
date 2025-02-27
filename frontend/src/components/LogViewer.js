@@ -4,7 +4,6 @@ import RealtimeMonitoring from './realtime/RealtimeMonitoring';
 import UploadMonitoring from './upload/UploadMonitoring';
 import useUIStore from '../stores/uiStore';
 import useUploadStore from '../stores/uploadStore';
-import useRealtimeStore from '../stores/realtimeStore';
 import useLogSocket from '../hooks/useLogSocket';
 
 const LogContainer = styled.div`
@@ -100,6 +99,68 @@ const ErrorMessage = styled.div`
   font-size: 14px;
 `;
 
+// 파일 업로드 관련 컴포넌트 (인라인으로 정의)
+const FileUploadSection = ({
+  uploadedFile,
+  uploadSuccess,
+  uploadError,
+  onFileUpload,
+  onOtherFileUpload,
+}) => {
+  return (
+    <>
+      {!uploadedFile ? (
+        <label htmlFor="log-file-upload">
+          <FileUploadArea $success={uploadSuccess} $error={uploadError}>
+            <UploadText $success={uploadSuccess} $error={uploadError}>
+              로그 파일을 업로드하세요
+            </UploadText>
+          </FileUploadArea>
+          <input
+            id="log-file-upload"
+            type="file"
+            accept=".log,.txt"
+            onChange={onFileUpload}
+            style={{ display: 'none' }}
+          />
+        </label>
+      ) : (
+        <FileUploadArea $success={uploadSuccess} $error={uploadError}>
+          <UploadText>현재 파일: {uploadedFile.name}</UploadText>
+          <button
+            onClick={onOtherFileUpload}
+            style={{
+              marginTop: '8px',
+              padding: '4px 8px',
+              borderRadius: '4px',
+              border: '1px solid #e2e8f0',
+              background: '#f8fafc',
+              cursor: 'pointer',
+            }}
+          >
+            다른 파일 업로드
+          </button>
+        </FileUploadArea>
+      )}
+    </>
+  );
+};
+
+// 탭 버튼 컴포넌트 (인라인으로 정의)
+const TabButtons = ({ activeTab, onTabChange, connected }) => {
+  return (
+    <TabButtonContainer>
+      <TabButton $active={activeTab === 'realtime'} onClick={() => onTabChange('realtime')}>
+        <TabText>실시간 로그 분석</TabText>
+        <ConnectionDot $connected={connected} title={connected ? '연결됨' : '연결 끊김'} />
+      </TabButton>
+      <TabButton $active={activeTab === 'upload'} onClick={() => onTabChange('upload')}>
+        <TabText>업로드 로그 분석</TabText>
+      </TabButton>
+    </TabButtonContainer>
+  );
+};
+
 const LogViewer = () => {
   const { activeTab, setActiveTab } = useUIStore();
   const {
@@ -113,8 +174,6 @@ const LogViewer = () => {
   } = useUploadStore();
 
   const { logData, socketStatus, isConnected, error, reconnect } = useLogSocket();
-
-  const connected = isConnected;
 
   // 탭 변경 시 파일 상태 유지를 위한 ref 추가
   const lastUploadedFileRef = useRef(null);
@@ -145,65 +204,24 @@ const LogViewer = () => {
     setUploadedFile(null);
     setUploadSuccess(false);
     setUploadError(null);
-
-    // uploadStore의 상태 초기화
     resetStats();
-    setUploadedFile(null); // uploadStore의 uploadedFile 초기화
+    setUploadedFile(null);
   };
 
   return (
     <LogContainer>
       <ContentContainer>
         <LeftSection>
-          <TabButtonContainer>
-            <TabButton
-              $active={activeTab === 'realtime'}
-              onClick={() => handleTabChange('realtime')}
-            >
-              <TabText>실시간 로그 분석</TabText>
-              <ConnectionDot $connected={connected} title={connected ? '연결됨' : '연결 끊김'} />
-            </TabButton>
-            <TabButton $active={activeTab === 'upload'} onClick={() => handleTabChange('upload')}>
-              <TabText>업로드 로그 분석</TabText>
-            </TabButton>
-          </TabButtonContainer>
+          <TabButtons activeTab={activeTab} onTabChange={handleTabChange} connected={isConnected} />
 
           {activeTab === 'upload' && (
-            <>
-              {!uploadedFile ? (
-                <label htmlFor="log-file-upload">
-                  <FileUploadArea $success={uploadSuccess} $error={uploadError}>
-                    <UploadText $success={uploadSuccess} $error={uploadError}>
-                      로그 파일을 업로드하세요
-                    </UploadText>
-                  </FileUploadArea>
-                  <input
-                    id="log-file-upload"
-                    type="file"
-                    accept=".log,.txt"
-                    onChange={handleFileUpload}
-                    style={{ display: 'none' }}
-                  />
-                </label>
-              ) : (
-                <FileUploadArea $success={uploadSuccess} $error={uploadError}>
-                  <UploadText>현재 파일: {uploadedFile.name}</UploadText>
-                  <button
-                    onClick={handleOtherFileUpload}
-                    style={{
-                      marginTop: '8px',
-                      padding: '4px 8px',
-                      borderRadius: '4px',
-                      border: '1px solid #e2e8f0',
-                      background: '#f8fafc',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    다른 파일 업로드
-                  </button>
-                </FileUploadArea>
-              )}
-            </>
+            <FileUploadSection
+              uploadedFile={uploadedFile}
+              uploadSuccess={uploadSuccess}
+              uploadError={uploadError}
+              onFileUpload={handleFileUpload}
+              onOtherFileUpload={handleOtherFileUpload}
+            />
           )}
         </LeftSection>
 
