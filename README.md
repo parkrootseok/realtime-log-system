@@ -54,13 +54,14 @@ Spring Boot 기반 로그 분석 시스템과 React 대시보드를 구현하여
 | Version Control | <img src="https://img.shields.io/badge/git-F05032?style=for-the-badge&logo=git&logoColor=white"/> <img src="https://img.shields.io/badge/github-181717?style=for-the-badge&logo=github&logoColor=white"/>               |
 | Copilot         | <img src="https://img.shields.io/badge/openai-412991.svg?style=for-the-badge&logo=openai&logoColor=white"/> <img src="https://img.shields.io/badge/Cursor-181717.svg?style=for-the-badge&logo=Cursor&logoColor=white"/> |
 
-## 1. 루트 디렉터리 이동
+## 🚀 실행 방법
+#### 1. 루트 디렉터리 이동
 
 ```bash
 cd humuson-assignment
 ```
 
-## 2. frontend 폴더로 이동 후 .env 파일 생성
+### 2. frontend 폴더로 이동 후 .env 파일 생성
 
 ```bash
 cd frontend
@@ -75,7 +76,7 @@ echo "REACT_APP_WS_URL=ws://localhost:8080" >> .env
 cd ..
 ```
 
-## 3. Docker Compose 실행
+### 3. Docker Compose 실행
 
 ```bash
 docker compose up -d --build
