@@ -24,12 +24,11 @@ public class LogAnalysisServiceImpl implements LogAnalysisService {
      * 로그 데이터를 기반으로 특정 레벨별 로그 개수를 반환
      *
      * @param logs        분석할 로그 목록
-     * @param levelString 분석할 로그 레벨 (예: "ERROR,WARN,INFO")
+     * @param parsedLevels 분석할 로그 레벨 (예: "ERROR,WARN,INFO")
      * @return 로그 레벨별 개수를 매핑한 Map
      */
     @Override
-    public Map<Level, Long> getLogsCountByLevel(List<LogEntity> logs, String levelString) {
-        List<Level> parsedLevels = Level.parseLevels(levelString);
+    public Map<Level, Long> getLogsCountByLevel(List<LogEntity> logs, List<Level> parsedLevels) {
         return logs.stream()
                 .filter(log -> parsedLevels.contains(log.getLevel())) // 주어진 레벨 목록과 일치하는 로그만 필터링
                 .collect(Collectors.groupingBy(LogEntity::getLevel, Collectors.counting())); // 레벨별 개수 집계
@@ -61,9 +60,9 @@ public class LogAnalysisServiceImpl implements LogAnalysisService {
     public Map<String, Map<Level, Long>> getLogsGroupByMinute(List<LogEntity> logs) {
         return logs.stream()
                 .collect(Collectors.groupingBy(
-                        this::extractMinute, // 분 단위로 로그 그룹화
-                        java.util.TreeMap::new, // 정렬된 TreeMap 사용
-                        Collectors.groupingBy(LogEntity::getLevel, Collectors.counting()) // 레벨별 로그 개수 집계
+                        this::extractMinute,
+                        java.util.TreeMap::new,
+                        Collectors.groupingBy(LogEntity::getLevel, Collectors.counting())
                 ));
     }
 

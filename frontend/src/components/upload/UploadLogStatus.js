@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import StatusItem from '../common/status/StatusItem';
+import LogLevelCountBox from '../common/loglevel/LogLevelCountBox';
 import useUploadStore from '../../stores/uploadStore';
 
 const StatusWrapper = styled.div`
@@ -15,8 +15,8 @@ const UploadLogStatus = () => {
 
   return (
     <StatusWrapper>
-      <StatusItem label="전체 로그" value={totalCount.toLocaleString()} />
-      <StatusItem label="에러" value={errorCount.toLocaleString()} type="error" />
+      <LogLevelCountBox label="전체 로그" value={totalCount.toLocaleString()} />
+      <LogLevelCountBox label="에러" value={errorCount.toLocaleString()} type="error" />
     </StatusWrapper>
   );
 };

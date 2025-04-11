@@ -1,10 +1,10 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 import styled from 'styled-components';
 import RealtimeMonitoring from './realtime/RealtimeMonitoring';
 import UploadMonitoring from './upload/UploadMonitoring';
 import useUIStore from '../stores/uiStore';
 import useUploadStore from '../stores/uploadStore';
-import useRealtimeStore from '../stores/realtimeStore';
+import useLogSocket from '../hooks/useLogSocket';
 
 const LogContainer = styled.div`
   padding: 32px 48px;
@@ -99,6 +99,68 @@ const ErrorMessage = styled.div`
   font-size: 14px;
 `;
 
+// 파일 업로드 관련 컴포넌트 (인라인으로 정의)
+const FileUploadSection = ({
+  uploadedFile,
+  uploadSuccess,
+  uploadError,
+  onFileUpload,
+  onOtherFileUpload,
+}) => {
+  return (
+    <>
+      {!uploadedFile ? (
+        <label htmlFor="log-file-upload">
+          <FileUploadArea $success={uploadSuccess} $error={uploadError}>
+            <UploadText $success={uploadSuccess} $error={uploadError}>
+              로그 파일을 업로드하세요
+            </UploadText>
+          </FileUploadArea>
+          <input
+            id="log-file-upload"
+            type="file"
+            accept=".log,.txt"
+            onChange={onFileUpload}
+            style={{ display: 'none' }}
+          />
+        </label>
+      ) : (
+        <FileUploadArea $success={uploadSuccess} $error={uploadError}>
+          <UploadText>현재 파일: {uploadedFile.name}</UploadText>
+          <button
+            onClick={onOtherFileUpload}
+            style={{
+              marginTop: '8px',
+              padding: '4px 8px',
+              borderRadius: '4px',
+              border: '1px solid #e2e8f0',
+              background: '#f8fafc',
+              cursor: 'pointer',
+            }}
+          >
+            다른 파일 업로드
+          </button>
+        </FileUploadArea>
+      )}
+    </>
+  );
+};
+
+// 탭 버튼 컴포넌트 (인라인으로 정의)
+const TabButtons = ({ activeTab, onTabChange, connected }) => {
+  return (
+    <TabButtonContainer>
+      <TabButton $active={activeTab === 'realtime'} onClick={() => onTabChange('realtime')}>
+        <TabText>실시간 로그 분석</TabText>
+        <ConnectionDot $connected={connected} title={connected ? '연결됨' : '연결 끊김'} />
+      </TabButton>
+      <TabButton $active={activeTab === 'upload'} onClick={() => onTabChange('upload')}>
+        <TabText>업로드 로그 분석</TabText>
+      </TabButton>
+    </TabButtonContainer>
+  );
+};
+
 const LogViewer = () => {
   const { activeTab, setActiveTab } = useUIStore();
   const {
@@ -110,17 +172,8 @@ const LogViewer = () => {
     setUploadError,
     resetStats,
   } = useUploadStore();
-  const {
-    connected,
-    error,
-    logs,
-    setConnected,
-    setError,
-    addLog,
-    setLogs,
-    resetRealtimeState,
-    initSocket,
-  } = useRealtimeStore();
+
+  const { logData, socketStatus, isConnected, error, reconnect } = useLogSocket();
 
   // 탭 변경 시 파일 상태 유지를 위한 ref 추가
   const lastUploadedFileRef = useRef(null);
@@ -151,163 +204,36 @@ const LogViewer = () => {
     setUploadedFile(null);
     setUploadSuccess(false);
     setUploadError(null);
-
-    // uploadStore의 상태 초기화
     resetStats();
-    setUploadedFile(null); // uploadStore의 uploadedFile 초기화
+    setUploadedFile(null);
   };
-
-  useEffect(() => {
-    const wsUrl = `${process.env.REACT_APP_WS_URL}/log/ws-stream`;
-    const socket = initSocket(wsUrl);
-
-    const sendMessage = (type) => {
-      if (socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify({ type }));
-      }
-    };
-
-    const processLog = (logData) => {
-      if (!logData) return null;
-
-      try {
-        let formattedTimestamp;
-        if (Array.isArray(logData.timestamp)) {
-          const [year, month, day, hour, minute, second] = logData.timestamp;
-          formattedTimestamp = new Date(year, month - 1, day, hour, minute, second);
-        } else if (typeof logData.timestamp === 'string') {
-          formattedTimestamp = new Date(logData.timestamp);
-        } else {
-          formattedTimestamp = new Date();
-        }
-
-        const uniqueId = `${formattedTimestamp.getTime()}-${Math.random().toString(36).substr(2, 9)}`;
-
-        return {
-          ...logData,
-          timestamp: formattedTimestamp,
-          id: uniqueId,
-          serviceName: logData.serviceName || 'Unknown',
-          level: logData.level || 'INFO',
-          message: logData.message || 'No message',
-        };
-      } catch (error) {
-        console.error('로그 처리 중 오류 발생:', error);
-        return null;
-      }
-    };
-
-    // 소켓이 이미 연결되어 있는 경우 이벤트 핸들러만 등록
-    if (socket.readyState === WebSocket.OPEN) {
-      setConnected(true);
-      setError(null);
-      sendMessage('sendInitialLogs');
-    }
-
-    socket.onopen = () => {
-      console.log('WebSocket 연결 성공!');
-      setConnected(true);
-      setError(null);
-      sendMessage('sendInitialLogs');
-    };
-
-    socket.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (Array.isArray(data)) {
-          const formattedLogs = data.map(processLog).filter((log) => log !== null);
-          setLogs(formattedLogs);
-        } else {
-          const formattedLog = processLog(data);
-          if (formattedLog) {
-            addLog(formattedLog);
-          }
-        }
-      } catch (error) {
-        console.error('로그 파싱 에러:', error);
-        console.error('원본 데이터:', event.data);
-        setError('로그 데이터 처리 중 오류가 발생했습니다.');
-      }
-    };
-
-    socket.onerror = (error) => {
-      console.error('WebSocket 에러 발생:', error);
-      setConnected(false);
-      setError('WebSocket 연결 중 오류가 발생했습니다.');
-    };
-
-    socket.onclose = (event) => {
-      setConnected(false);
-    };
-
-    // 컴포넌트가 언마운트될 때 소켓 연결을 종료하지 않고 이벤트 핸들러만 제거
-    return () => {
-      // 이벤트 핸들러 제거
-      socket.onmessage = null;
-      socket.onerror = null;
-      socket.onclose = null;
-    };
-  }, []);
 
   return (
     <LogContainer>
       <ContentContainer>
         <LeftSection>
-          <TabButtonContainer>
-            <TabButton
-              $active={activeTab === 'realtime'}
-              onClick={() => handleTabChange('realtime')}
-            >
-              <TabText>실시간 로그 분석</TabText>
-              <ConnectionDot $connected={connected} title={connected ? '연결됨' : '연결 끊김'} />
-            </TabButton>
-            <TabButton $active={activeTab === 'upload'} onClick={() => handleTabChange('upload')}>
-              <TabText>업로드 로그 분석</TabText>
-            </TabButton>
-          </TabButtonContainer>
+          <TabButtons activeTab={activeTab} onTabChange={handleTabChange} connected={isConnected} />
 
           {activeTab === 'upload' && (
-            <>
-              {!uploadedFile ? (
-                <label htmlFor="log-file-upload">
-                  <FileUploadArea $success={uploadSuccess} $error={uploadError}>
-                    <UploadText $success={uploadSuccess} $error={uploadError}>
-                      로그 파일을 업로드하세요
-                    </UploadText>
-                  </FileUploadArea>
-                  <input
-                    id="log-file-upload"
-                    type="file"
-                    accept=".log,.txt"
-                    onChange={handleFileUpload}
-                    style={{ display: 'none' }}
-                  />
-                </label>
-              ) : (
-                <FileUploadArea $success={uploadSuccess} $error={uploadError}>
-                  <UploadText>현재 파일: {uploadedFile.name}</UploadText>
-                  <button
-                    onClick={handleOtherFileUpload}
-                    style={{
-                      marginTop: '8px',
-                      padding: '4px 8px',
-                      borderRadius: '4px',
-                      border: '1px solid #e2e8f0',
-                      background: '#f8fafc',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    다른 파일 업로드
-                  </button>
-                </FileUploadArea>
-              )}
-            </>
+            <FileUploadSection
+              uploadedFile={uploadedFile}
+              uploadSuccess={uploadSuccess}
+              uploadError={uploadError}
+              onFileUpload={handleFileUpload}
+              onOtherFileUpload={handleOtherFileUpload}
+            />
           )}
         </LeftSection>
 
         <LogContent>
           {activeTab === 'realtime' ? (
-            <RealtimeMonitoring logs={logs} />
+            <RealtimeMonitoring
+              logs={logData}
+              socketStatus={socketStatus}
+              isConnected={isConnected}
+              error={error}
+              onReconnect={reconnect}
+            />
           ) : (
             <UploadMonitoring
               uploadedFile={uploadedFile}

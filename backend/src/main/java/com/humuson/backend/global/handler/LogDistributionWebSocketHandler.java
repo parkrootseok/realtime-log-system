@@ -62,7 +62,7 @@ public class LogDistributionWebSocketHandler extends TextWebSocketHandler {
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
         String payload = message.getPayload();
         if (payload.contains("logDistribution")) {
-            sendLogDistribution(session, "app.log");
+            sendLogDistribution(session);
         }
     }
 
@@ -70,12 +70,11 @@ public class LogDistributionWebSocketHandler extends TextWebSocketHandler {
      * 클라이언트에게 로그 분포 데이터를 전송
      *
      * @param session 로그 데이터를 보낼 WebSocket 세션
-     * @param fileName 로그 파일 이름
      * @throws IOException 데이터 전송 중 오류 발생 시
      */
-    private void sendLogDistribution(WebSocketSession session, String fileName) throws IOException {
+    private void sendLogDistribution(WebSocketSession session) throws IOException {
         LocalDateTime now = LocalDateTime.now();
-        GetLogDistributionResponse logDistribution = logUseCase.getLogDistribution(fileName, now.minusMinutes(10), now);
+        GetLogDistributionResponse logDistribution = logUseCase.getLogDistribution(now.minusMinutes(10), now);
         session.sendMessage(new TextMessage(objectMapper.writeValueAsString(logDistribution)));
     }
 

@@ -8,7 +8,7 @@ import lombok.Builder;
 @Builder(access = AccessLevel.PRIVATE)
 public record GetFilteredLogResponse(List<LogEntity> logs, int page, int size, long totalElements) {
 
-    public static GetFilteredLogResponse of(List<LogEntity> logs, int page, int size, int totalElements) {
+    public static GetFilteredLogResponse of(List<LogEntity> logs, int page, int size, long totalElements) {
         return GetFilteredLogResponse.builder()
                 .logs(logs)
                 .page(page)
