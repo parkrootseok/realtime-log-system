@@ -5,14 +5,6 @@
 - [실시간 로그 분석 시스템](#실시간-로그-분석-시스템)
   - [📑 목차](#-목차)
   - [📋 프로젝트 개요](#-프로젝트-개요)
-  - [✅ 주요 기능 및 요구사항 충족 여부](#-주요-기능-및-요구사항-충족-여부)
-    - [1. 로그 데이터 생성](#1-로그-데이터-생성)
-    - [2. 로그 분석 API](#2-로그-분석-api)
-      - [2-1. 로그 파일 업로드 (POST /logs/upload)](#2-1-로그-파일-업로드-post-logsupload)
-      - [2-2. 로그 분석 (GET /logs/analyze)](#2-2-로그-분석-get-logsanalyze)
-      - [2-3. 에러 로그 조회 (GET /logs/errors)](#2-3-에러-로그-조회-get-logserrors)
-      - [2-4. 실시간 로그 스트리밍 (GET /logs/stream)](#2-4-실시간-로그-스트리밍-get-logsstream)
-    - [3. 웹 UI](#3-웹-ui)
   - [🛠 기술 스택](#-기술-스택)
     - [클라이언트](#클라이언트)
     - [서버](#서버)
@@ -52,6 +44,7 @@ Spring Boot 기반 로그 분석 시스템과 React 대시보드를 구현하여
 | :-------- | :----------------------------------------------------------------------------------------------------------------------- |
 | Framework | <img src="https://img.shields.io/badge/SpringBoot-6DB33F?style=for-the-badge&logo=SpringBoot&logoColor=white"/>          |
 | Language  | <img src="https://img.shields.io/badge/Java-007396?style=for-the-badge&logo=openjdk&logoColor=white"/>                   |
+| Database  | <img src="https://img.shields.io/badge/mongodb-47A248?style=for-the-badge&logo=mongodb&logoColor=white"/>                   |
 | IDE       | <img src="https://img.shields.io/badge/IntelliJIDEA-000000.svg?style=for-the-badge&logo=intellij-idea&logoColor=white"/> |
 
 ### 공통
